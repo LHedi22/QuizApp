@@ -225,4 +225,4 @@ Format per entry:
   the dashboard UI lands (Phase 8).
 - Image build ~ downloads Debian + pip wheels; first `--build` is slow, cached after.
 
-**Commit:** _(phase-0: docker-compose app + worker + postgres (0.5))_
+**Commit:** 4c0c9af
