@@ -376,3 +376,30 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
   `test_data_model.test_owner_lookup_covers_every_owned_model` enforces it.
 
 **Commit:** a80c354
+
+## phase-1.2 — Per-professor ownership isolation (R0.2)   (2026-09-09)
+
+**Done:**
+- `app/core/access.py`: `get_owned_or_404(model, pk, user)` — the single funnel every
+  data view must use; raises `Http404` (never 403) for a foreign or missing id.
+- `OwnedManager.owned_by(user)` (built in 1.1) is the queryset primitive underneath.
+- `tests/test_cross_account_isolation.py` — 3 tests: for all 7 non-Professor models,
+  professor A's rows are visible to A and invisible to B (`.owned_by(B)` empty,
+  `.get()` raises `DoesNotExist`); `get_owned_or_404` returns own / 404s foreign /
+  404s missing pk.
+
+**DoD proof:**
+- `pytest tests/test_cross_account_isolation.py -q` → `3 passed`
+- `ruff check .` clean
+
+**Notes / affects later phases:**
+- **R0.2 is only partially verified here.** The spec wants "every request path" — but
+  there are no data views yet. Every phase that adds a data view (8, 9, and any
+  earlier form handlers) MUST route reads through `get_owned_or_404` and add its own
+  cross-account 404 test. Phase 8/9 DoD closes the full R0.2 verification.
+- `_OWNER_LOOKUP` (managers.py) is the FK-path map; a new owned model without an
+  entry fails `test_data_model.test_owner_lookup_covers_every_owned_model`.
+- R0.3 (unauth request rejected before data) is covered in 1.3 against the first
+  protected view.
+
+**Commit:** _(phase-1: ownership isolation primitives + cross-account tests (1.2))_
