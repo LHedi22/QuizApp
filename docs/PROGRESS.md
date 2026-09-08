@@ -140,4 +140,4 @@ Format per entry:
 - `check_corpus.py` takes an optional root arg so Phase 5/6 harnesses can point it at
   a held-out split.
 
-**Commit:** fa44b41
+**Commit:** 00c8d27
