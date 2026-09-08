@@ -95,4 +95,49 @@ Format per entry:
 - Right edge of the sheet has no perimeter marks (3 sides covered). Acceptable for
   a throwaway; the Phase 4 real sheet gets a full 4-side perimeter.
 
-**Commit:** _(this commit)_
+**Commit:** 777bc63
+
+## phase-0.3 — Corpus schema, capture protocol, validator   (2026-09-08)
+
+**Done:**
+- `corpus/README.md` — capture protocol for subtask 0.7: target counts (30 phone /
+  10 copier spec minimums; 5 photocopied-generations + 5 upside-down/reversed as this
+  project's "must include" floors), rotation/framing/lighting variety, image-size
+  guidance (~1500–2200px long edge), filename + labeling workflow, Git LFS trigger.
+- `corpus/labels/SCHEMA.md` — label field table + worked example. Fields: `image`,
+  `capture_type`, `photocopy_generations` (0–3), `orientation`
+  (upright/upside_down/reversed), `sheet_token`, `lighting`, `marked_options`
+  (question → filled letters; per-bubble ground truth), `notes`, optional
+  `fiducial_px` (4 hand-clicked corner points; Phase 5 alignment gold data).
+- `scripts/check_corpus.py` — `validate_label()` + `validate_corpus()` +
+  CLI. Cross-checks image↔label pairing, field/enum/type validity, `sheet_token`
+  resolution against `corpus/_source/*.meta.json`, `marked_options` within the
+  sheet's Q/N, `fiducial_px` count + in-bounds; then aggregate thresholds. Exit 0 =
+  complete; this is the standing gate for 0.7.
+- `scripts/new_label.py` — scaffolds a label for an image (guesses `capture_type`
+  from filename, auto-fills `sheet_token` when one source sheet exists, seeds all
+  questions to `[]`).
+- `tests/test_corpus_validator.py` — 24 tests: `validate_label` valid case + 11
+  parametrized defect cases + fiducial bounds/count; `validate_corpus` good corpus
+  (relaxed thresholds), small corpus flagged by default thresholds, orphan
+  image/label, missing source metas, invalid-JSON label.
+- `pyproject.toml`: ruff `line-length` 100 → **120** (f-string report lines).
+
+**DoD proof:**
+- `pytest tests/test_corpus_validator.py -q` → part of `24 passed`
+- `python scripts/check_corpus.py` (empty corpus) → prints summary table, lists the
+  4 unmet thresholds, exit 1 — the gate is active and correctly failing until 0.7.
+- `python scripts/new_label.py corpus/images/<x>.png` → writes a valid template
+  pre-filled with the committed `throwaway_v0` token.
+- `ruff check .` clean.
+
+**Notes / affects later phases:**
+- `marked_options` is the Phase 6 bubble-classifier ground truth; `fiducial_px` is
+  the Phase 5 alignment ground truth. Phase 5/6 read the corpus via
+  `scripts.check_corpus` helpers or their own loader against this same schema.
+- Threshold floors for photocopied / reversed (5 each) are a project choice, not a
+  spec number — revisit if Phase 5 shows they're too low to be representative.
+- `check_corpus.py` takes an optional root arg so Phase 5/6 harnesses can point it at
+  a held-out split.
+
+**Commit:** fa44b41

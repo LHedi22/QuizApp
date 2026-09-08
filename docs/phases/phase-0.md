@@ -272,8 +272,8 @@ checklist above as the hand-off.
 ## Phase 0 exit checklist
 
 - [x] 0.1 scaffold — `ruff` + `pytest` green in `.venv`  (commit 19b8573)
-- [ ] 0.2 throwaway sheet — generated; QR decodes from rasterized page
-- [ ] 0.3 corpus validator — proven on fixtures; `check_corpus.py` gate active
+- [x] 0.2 throwaway sheet — generated; QR decodes from rasterized page  (commit 777bc63)
+- [x] 0.3 corpus validator — proven on tmp-path corpora; `check_corpus.py` gate active  (commit fa44b41)
 - [ ] 0.4 Django — `manage.py check` + `migrate --check` clean on Postgres, healthz 200
 - [ ] 0.5 compose — `docker compose up` → healthz 200; app + worker + postgres, 127.0.0.1
 - [ ] 0.6 CI — `scripts/ci.sh` green; workflow YAML parses
