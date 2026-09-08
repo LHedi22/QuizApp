@@ -16,6 +16,18 @@ Format per entry:
 
 ---
 
+## ⚠ KNOWN-PENDING ITEMS (blocking phase completion, not blocking forward work)
+
+- **phase-0.7 — real-capture corpus.** DEFERRED by the user 2026-09-09; they will do
+  the physical print/photocopy/fill/photograph/scan/label pass later. **Phase 0 is
+  NOT complete** until `python scripts/check_corpus.py` exits 0 and the corpus is
+  committed. Everything else in Phase 0 (0.1–0.6) is done. Forward work through
+  Phase 4 does not depend on the corpus and is authorised to proceed.
+  **Phase 5's DoD requires the real corpus (CLAUDE.md rule 9) — synthetic images may
+  NOT be substituted. If Phase 5 is reached before the corpus exists, stop and ask.**
+
+---
+
 ## phase-0.1 — Repo scaffold + Python tooling   (2026-09-08)
 
 **Done:**
@@ -256,4 +268,25 @@ Format per entry:
 - R8.1 ("CI proves a clean DB migrates to head") is now satisfied in precursor form;
   it gets re-asserted with our own migrations in Phase 1.
 
-**Commit:** 8572252
+**Commit:** 8572252 (+ a6d5090 hash-ref)
+
+## phase-0.7 — real-capture corpus   — DEFERRED (2026-09-09)
+
+**Status:** Not started. User deferred the physical capture pass; will do it later.
+Tracked in the "KNOWN-PENDING ITEMS" section at the top of this file.
+
+**What's ready for it:** `scripts/make_throwaway_sheet.py` +
+`corpus/_source/throwaway_v0.*` (fixed token
+`throwaway-290c04e0-b66f-44f2-b0ad-6fea46af6756`); `corpus/README.md` protocol;
+`corpus/labels/SCHEMA.md`; `scripts/new_label.py`; `scripts/check_corpus.py` gate
+(currently exits 1 — 0/30 phone, 0/10 copier, 0/5 photocopied, 0/5 reversed).
+
+**DoD (unmet):** `python scripts/check_corpus.py` exits 0; corpus committed.
+
+**Phase 0 close-out:** blocked on this. Phases 1–4 proceed in the meantime (they do
+not read the corpus). Phase 5 does — do not close Phase 5 against synthetic images
+(CLAUDE.md rule 9); stop and ask if Phase 5 is reached first.
+
+---
+
+# ===== PHASE 1 — Data model + auth + migrations + shared geometry config =====

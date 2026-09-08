@@ -278,3 +278,5 @@ checklist above as the hand-off.
 - [x] 0.5 compose — `docker compose up` → healthz 200; app + worker + postgres, 127.0.0.1
 - [x] 0.6 CI — `scripts/ci.sh` green; workflow YAML parses
 - [ ] 0.7 real corpus — `check_corpus.py` exits 0; committed
+      **DEFERRED by user 2026-09-09** — Phase 0 stays open. Phases 1–4 proceed without
+      it; Phase 5 does not (CLAUDE.md rule 9). Tracked in PROGRESS.md "KNOWN-PENDING".
