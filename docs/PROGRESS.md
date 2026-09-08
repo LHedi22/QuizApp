@@ -403,3 +403,44 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
   protected view.
 
 **Commit:** e286230
+
+## phase-1.3 — Auth: self-signup + login + session, no password reset (R0.1/R0.3)   (2026-09-09)
+
+**Done:**
+- `app/web/forms.py` `RegisterForm` — email + password1/password2, lowercases email,
+  rejects duplicates, runs `password_validation.validate_password`, `set_password`.
+- `app/web/views.py` — `register` (open self-signup, redirects authed users to
+  dashboard, logs in on success), `dashboard` (`@login_required` placeholder),
+  `healthz` (moved here from the old module).
+- `app/web/urls.py` — `/` dashboard, `/healthz`, `/accounts/login/`
+  (`LoginView`, `redirect_authenticated_user=True`), `/accounts/logout/`
+  (`LogoutView`, POST-only in Django 5), `/accounts/register/`. **No
+  `django.contrib.auth.urls` include → no password-reset routes.**
+- `app/urls.py` now `include("app.web.urls")`.
+- Templates: `registration/login.html`, `web/register.html`, `web/dashboard.html`
+  (all extend `base.html`).
+- `settings.py`: `LOGIN_URL` / `LOGIN_REDIRECT_URL` / `LOGOUT_REDIRECT_URL`.
+- `tests/test_auth_flow.py` — 12 tests: register→login→dashboard 200;
+  login/logout cycle; unauth dashboard → 302 to `/accounts/login/` (R0.3);
+  duplicate email rejected (count stays 1); weak password + password mismatch
+  rejected; `reverse("password_reset"|"password_change"|...)` → `NoReverseMatch`;
+  4 password-reset/-change URL paths → 404.
+
+**DoD proof:**
+- `python manage.py check` → 0 issues
+- `pytest -q` → `56 passed` (was 39 + 12 auth + ... ; also picks up test_healthz)
+- `bash scripts/ci.sh` → `All checks passed!` / `56 passed` / core migrations to a
+  fresh DB / `ALL GREEN`
+- `ruff check .` clean
+
+**Notes / affects later phases:**
+- `LogoutView` is POST-only (Django 5). The dashboard template logs out via a POST
+  form; tests use `client.post("/accounts/logout/")`.
+- The dashboard is the only protected view so far; R0.3's "before any data" is
+  trivially satisfied (no queries yet). Data views added later must keep
+  `@login_required` + `get_owned_or_404`.
+- Recovery path for a lost password = Django admin (`/admin/`, `ProfessorAdmin`).
+  There is deliberately no self-service reset.
+- `healthz` moved from a standalone path to `app.web.urls`; still at `/healthz`.
+
+**Commit:** _(phase-1: auth self-signup + login + session, no password reset (1.3))_
