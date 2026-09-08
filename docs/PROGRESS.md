@@ -140,4 +140,45 @@ Format per entry:
 - `check_corpus.py` takes an optional root arg so Phase 5/6 harnesses can point it at
   a held-out split.
 
-**Commit:** 00c8d27
+**Commit:** 00c8d27 (+ 49ddf61 hash-ref fixup)
+
+## phase-0.4 — Django project + Postgres settings + Django-Q2 wired   (2026-09-09)
+
+**Done:**
+- `manage.py`, `app/settings.py` (env-driven via `dj-database-url`; `django_q` +
+  `app.web` in `INSTALLED_APPS`; `Q_CLUSTER` ORM broker, no Redis; localhost cookie
+  flags off pending TLS), `app/urls.py` (`/admin/`, `/healthz`), `app/wsgi.py`,
+  `app/asgi.py`.
+- `app/web/` app: `apps.py`, `views.healthz` → `JsonResponse({"status": "ok"})` (no
+  DB access), `templates/base.html` stub.
+- `.env.example` (repo root, non-docker local runs).
+- `pyproject.toml`: `DJANGO_SETTINGS_MODULE = "app.settings"` for pytest.
+- `tests/test_healthz.py`.
+
+**DoD proof:**
+- `python manage.py check` → `System check identified no issues (0 silenced).` exit 0
+- Postgres via `docker run ... postgres:16` (host port 5432 — see note), then
+  `DATABASE_URL=postgres://postgres:dev@127.0.0.1:5432/quizscan`:
+  - `python manage.py migrate` → applies contenttypes/auth/admin/sessions +
+    django_q (19 migrations) to head
+  - re-run → `No migrations to apply.`
+  - `python manage.py migrate --check` → exit 0
+- `pytest -q` → `25 passed` (with and without `DATABASE_URL` set; healthz test uses
+  `client`, not `db`, so no test DB is created)
+- `python manage.py check --deploy` → 6 warnings, all TLS/DEBUG-related and expected
+  for the localhost prototype (§3 "no TLS, no reverse proxy"); non-blocking.
+
+**Notes / affects later phases:**
+- **Host-port pitfall (Windows):** `-p 127.0.0.1:55432:5432` failed with
+  `bind: An attempt was made to access a socket in a way forbidden` — Windows
+  reserves swathes of the ephemeral range for Hyper-V/WinNAT. 5432 itself worked.
+  Phase 0.5's compose file should pin a low, explicit `APP_PORT`/`PG_PORT` and the
+  runbook should note `netsh interface ipv4 show excludedportrange protocol=tcp` if
+  a bind fails.
+- `app/settings.py` `DATABASE_URL` default points at `127.0.0.1:5432/quizscan` for
+  convenience; real runs always pass it explicitly.
+- No app models yet (Phase 1). `app.web` has no migrations dir — fine with 0 models.
+- Django resolved: **5.1.15**. `check --deploy` W-codes are tracked, not fixed, until
+  the prototype graduates to a host.
+
+**Commit:** _(phase-0: Django project + Postgres settings + Django-Q2 (0.4))_

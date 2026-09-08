@@ -42,4 +42,4 @@ select = ["E", "F", "I", "UP", "B", "DJ"]
 testpaths = ["tests"]
 addopts = "-ra"
 pythonpath = ["."]
-# DJANGO_SETTINGS_MODULE is added in subtask 0.4 once app/settings.py exists.
+DJANGO_SETTINGS_MODULE = "app.settings"
