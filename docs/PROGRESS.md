@@ -443,4 +443,4 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
   There is deliberately no self-service reset.
 - `healthz` moved from a standalone path to `app.web.urls`; still at `/healthz`.
 
-**Commit:** _(phase-1: auth self-signup + login + session, no password reset (1.3))_
+**Commit:** 6e68631
