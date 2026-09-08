@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: quizscan
+          POSTGRES_PASSWORD: quizscan
+          POSTGRES_DB: quizscan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quizscan"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://quizscan:quizscan@localhost:5432/quizscan
+      SECRET_KEY: ci-secret-key-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libzbar0
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+
+  migrate-clean-db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: quizscan
+          POSTGRES_PASSWORD: quizscan
+          POSTGRES_DB: ci_fresh
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quizscan"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://quizscan:quizscan@localhost:5432/ci_fresh
+      SECRET_KEY: ci-secret-key-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - run: python manage.py migrate
+      - run: python manage.py migrate --check

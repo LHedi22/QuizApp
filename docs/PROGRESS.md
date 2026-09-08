@@ -225,4 +225,35 @@ Format per entry:
   the dashboard UI lands (Phase 8).
 - Image build ~ downloads Debian + pip wheels; first `--build` is slow, cached after.
 
-**Commit:** 4c0c9af
+**Commit:** 4c0c9af (+ 8fc61fe hash-ref)
+
+## phase-0.6 — CI: lint + tests + clean-DB migration   (2026-09-09)
+
+**Done:**
+- `.github/workflows/ci.yml` — 3 jobs: `lint` (ruff), `test` (pytest with a
+  `postgres:16` service + `libzbar0`), `migrate-clean-db` (fresh `ci_fresh` DB →
+  `migrate` → `migrate --check`). Triggers on push + PR.
+- `scripts/ci.sh` — local mirror: detects `.venv`, spins a disposable `postgres:16`
+  container, runs `ruff` → `pytest` → drop/create a fresh DB → `migrate` →
+  `migrate --check`, tears the container down on exit. This is the standing CI proof
+  until a GitHub remote exists.
+- `pyproject.toml`: `PyYAML` added to `[dev]` for the workflow-parse check.
+
+**DoD proof:**
+- `bash scripts/ci.sh` → `All checks passed!` / `25 passed` / 37 migrations applied
+  to a fresh DB / `migrate --check` clean → `ALL GREEN` (exit 0)
+- `python -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"` →
+  `yaml OK, jobs: ['lint', 'test', 'migrate-clean-db']`
+
+**Notes / affects later phases:**
+- **No GitHub remote yet** — the workflow file is committed but unverified against
+  Actions. `scripts/ci.sh` green is the proof of record. Push + confirm the green
+  check when a remote is added (Phase 12 or earlier).
+- `ci.sh` uses host port 5432 by default (`PGPORT` env overrides). If 5432 is busy,
+  `PGPORT=5433 bash scripts/ci.sh`.
+- The `test` job installs `libzbar0` because `tests/` imports `scripts.*` which
+  imports `pyzbar`. Keep that apt step whenever tests touch the OMR path.
+- R8.1 ("CI proves a clean DB migrates to head") is now satisfied in precursor form;
+  it gets re-asserted with our own migrations in Phase 1.
+
+**Commit:** _(phase-0: CI lint + tests + clean-DB migration (0.6))_

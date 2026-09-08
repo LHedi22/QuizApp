@@ -276,5 +276,5 @@ checklist above as the hand-off.
 - [x] 0.3 corpus validator — proven on tmp-path corpora; `check_corpus.py` gate active  (commit 00c8d27)
 - [x] 0.4 Django — `manage.py check` + `migrate --check` clean on Postgres, healthz 200
 - [x] 0.5 compose — `docker compose up` → healthz 200; app + worker + postgres, 127.0.0.1
-- [ ] 0.6 CI — `scripts/ci.sh` green; workflow YAML parses
+- [x] 0.6 CI — `scripts/ci.sh` green; workflow YAML parses
 - [ ] 0.7 real corpus — `check_corpus.py` exits 0; committed
