@@ -1,3 +1,8 @@
+# Normalize line endings to LF in the repo (code runs in Linux docker/CI).
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
 # Corpus images are binary. Git LFS decision is made in Phase 0 subtask 0.7,
 # once real file sizes are known; until then track normally as binary.
 corpus/images/** binary
