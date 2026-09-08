@@ -181,4 +181,48 @@ Format per entry:
 - Django resolved: **5.1.15**. `check --deploy` W-codes are tracked, not fixed, until
   the prototype graduates to a host.
 
-**Commit:** 613fe36
+**Commit:** 613fe36 (+ 283895e hash-ref)
+
+## phase-0.5 — docker-compose: app + worker + postgres on localhost   (2026-09-09)
+
+**Done:**
+- `deploy/Dockerfile` — `python:3.12-slim` + `libzbar0` + `curl`; `pip install .`;
+  non-root `appuser`; `/data/blob` + `/app/staticfiles` pre-created.
+- `deploy/entrypoint.sh` — `web` = migrate → collectstatic → gunicorn on
+  `0.0.0.0:8000`; `worker` = `manage.py qcluster`; else exec passthrough.
+- `deploy/docker-compose.yml` — `name: quizscan`; services **postgres**, **app**,
+  **worker** (app + worker share the built image). All host ports bound to
+  `127.0.0.1` only. Volumes `pgdata`, `blobstore`. postgres healthcheck =
+  `pg_isready`; app healthcheck = `curl /healthz`. `worker` `depends_on` postgres
+  **and** app `service_healthy` so Django-Q2 tables exist before the cluster starts.
+  No proxy/nginx/traefik, no TLS.
+- `deploy/.env.example` (+ local `deploy/.env`, gitignored), `.dockerignore`.
+
+**DoD proof (from a clean slate — `down -v` first):**
+- `docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d` →
+  postgres healthy → app healthy → worker started, in ~12 s.
+- `curl -fsS http://localhost:8010/healthz` → `{"status": "ok"}` **HTTP 200**
+- `docker compose ... exec app python manage.py migrate --check` → **exit 0**
+- `docker compose ... ps` → exactly `app`, `worker`, `postgres`; app bound
+  `127.0.0.1:8010->8000`, postgres `127.0.0.1:5432->5432`; no proxy service.
+- `docker compose ... logs worker` → `Q Cluster ... running.`, no error/traceback
+  lines on a clean boot.
+- `docker compose ... down -v` → volumes + network removed cleanly.
+
+**Notes / affects later phases:**
+- **APP_PORT default is 8010, not 8000** — 8000 was already in use on this machine
+  (`bind: Only one usage of each socket address`). `.env.example` documents the
+  Windows `netsh ... excludedportrange` check. Phase 12 runbook must cover this.
+- **Worker/migrate race (fixed):** on the first attempt `worker` only waited on
+  postgres and spewed `relation "django_q_ormq" does not exist` until `app`
+  migrated (it self-healed, but noisily). Fix = `worker.depends_on.app:
+  service_healthy`. Keep this ordering when adding scan-pipeline tasks in Phase 7.
+- `pip install .` (not `-e`) in the image: the installed `app` package and the
+  COPY'd source are identical; running `manage.py` from `/app` uses the source copy.
+  Phase 4 must add `COPY config ./config` once `sheet_template.json` exists.
+- `entrypoint.sh` runs `collectstatic` with `|| true`; under gunicorn + `DEBUG=0`
+  admin static needs it. Fine for Phase 0; revisit static serving (WhiteNoise?) when
+  the dashboard UI lands (Phase 8).
+- Image build ~ downloads Debian + pip wheels; first `--build` is slow, cached after.
+
+**Commit:** _(phase-0: docker-compose app + worker + postgres (0.5))_
