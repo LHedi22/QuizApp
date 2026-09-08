@@ -375,4 +375,4 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
 - `_OWNER_LOOKUP` in `managers.py` must gain an entry for every future owned model;
   `test_data_model.test_owner_lookup_covers_every_owned_model` enforces it.
 
-**Commit:** _(phase-1: data model + ordered migrations + immutability triggers (1.1))_
+**Commit:** a80c354
