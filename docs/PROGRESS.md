@@ -256,4 +256,4 @@ Format per entry:
 - R8.1 ("CI proves a clean DB migrates to head") is now satisfied in precursor form;
   it gets re-asserted with our own migrations in Phase 1.
 
-**Commit:** _(phase-0: CI lint + tests + clean-DB migration (0.6))_
+**Commit:** 8572252
