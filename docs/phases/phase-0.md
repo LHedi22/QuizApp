@@ -238,7 +238,7 @@ with the checklist above as the hand-off.
 
 ## Phase 0 exit checklist
 
-- [ ] 0.1 scaffold — `ruff` + `pytest` green in `.venv`
+- [x] 0.1 scaffold — `ruff` + `pytest` green in `.venv`  (commit 19b8573)
 - [ ] 0.2 Django — `manage.py check` + `migrate --check` clean on Postgres, healthz 200
 - [ ] 0.3 compose — `docker compose up` → healthz 200, exactly app + postgres, 127.0.0.1
 - [ ] 0.4 CI — `scripts/ci.sh` green; workflow YAML parses

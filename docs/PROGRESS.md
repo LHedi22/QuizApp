@@ -38,4 +38,4 @@ Format per entry:
 - Dev env is a project-local `.venv` (Windows paths: `.venv/Scripts/...`). CI (0.4) and docker (0.3) will use Linux paths.
 - No Django project yet — `pytest` runs plain; `manage.py` / `app/settings.py` land in 0.2.
 
-**Commit:** _(this commit)_
+**Commit:** 19b8573 (+ f33e7b0 line-ending follow-up)
