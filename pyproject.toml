@@ -41,4 +41,5 @@ select = ["E", "F", "I", "UP", "B", "DJ"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-# DJANGO_SETTINGS_MODULE is added in subtask 0.2 once app/settings.py exists.
+pythonpath = ["."]
+# DJANGO_SETTINGS_MODULE is added in subtask 0.4 once app/settings.py exists.

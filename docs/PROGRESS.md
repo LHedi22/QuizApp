@@ -39,3 +39,60 @@ Format per entry:
 - No Django project yet — `pytest` runs plain; `manage.py` / `app/settings.py` land in 0.2.
 
 **Commit:** 19b8573 (+ f33e7b0 line-ending follow-up)
+
+## phase-0 — plan review   (2026-09-08)
+
+**Done:** Reviewed `docs/phases/phase-0.md` against REBUILD_SPEC §5. Changes:
+- Reordered subtasks: throwaway sheet (now 0.2) and corpus schema/validator (0.3)
+  moved ahead of Django/compose/CI so the user's physical capture pass (0.7) is
+  unblocked as early as possible.
+- `config/` lives at the **repo root** (matches `docs/CLAUDE.md` + §3.2A wording;
+  the §5 tree diagram's indentation was ambiguous). Moved `app/config/` → `config/`.
+  Flagged to reconfirm at Phase 1 start (geometry-adjacent, rule 5).
+- Added optional `fiducial_px` ground-truth field to the corpus label schema for
+  Phase 5 alignment gold data; added corpus image-size guidance (~1500-2200px long
+  edge) to keep the repo small without Git LFS.
+
+**Commit:** 0ce9fc2
+
+## phase-0.2 — Throwaway OMR test sheet generator   (2026-09-08)
+
+**Done:**
+- `scripts/make_throwaway_sheet.py` — standalone ReportLab generator (NOT `app/pdf`,
+  does NOT read `config/sheet_template.json`). One A4 page: 4 corner fiducials +
+  edge timing marks on 3 sides (top/bottom aligned to option columns, left aligned
+  to question rows), QR (26mm, error-correct M) encoding `throwaway-<uuid4>`, a
+  2-block bubble grid (default 40Q × 4 opt) with `Q#` / `A–D` labels, handwriting
+  box. Emits `.pdf`, `.png` preview (150dpi via PyMuPDF), `.meta.json`
+  (token, page size, question/option counts, fiducial centres mm, per-question
+  bubble centres mm). CLI `--questions/--options/--out`.
+- `scripts/check_throwaway_sheet.py` — rasterizes the PDF at 200dpi and decodes the
+  QR with pyzbar, asserting it equals the meta token (R3.4-style check: QR decodes
+  after rasterization, from the rendered page not the standalone PNG).
+- `tests/test_throwaway_sheet.py` — 3 tests (files written; QR decodes from raster
+  at default geometry; QR decodes at 24Q × 6opt).
+- Committed the generated `corpus/_source/throwaway_v0.{pdf,png,meta.json}` so the
+  physical sheet + its token are stable for the 0.7 capture pass.
+- `pyproject.toml`: added `pythonpath = ["."]` so tests can import `scripts.*`.
+
+**DoD proof:**
+- `python scripts/make_throwaway_sheet.py --out corpus/_source/throwaway_v0` →
+  wrote pdf/png/meta, `sheet_token = throwaway-290c04e0-b66f-44f2-b0ad-6fea46af6756`
+- `python scripts/check_throwaway_sheet.py corpus/_source/throwaway_v0` →
+  `OK: QR decoded from rasterized page, token = throwaway-290c04e0-...`
+- `ruff check .` → clean; `pytest -q` → `5 passed`
+- PNG visually inspected: 4 distinct corner fiducials, QR clear of the top-left
+  fiducial, top/bottom/left perimeter marks, 40-row grid legible.
+
+**Notes / affects later phases:**
+- **Disposable geometry.** Phases 1/4/5 must not import or reference
+  `scripts/make_throwaway_sheet.py` or `throwaway_v0.meta.json`. Real geometry is
+  `config/sheet_template.json` (Phase 1).
+- `throwaway_v0` token is committed and fixed: **`throwaway-290c04e0-b66f-44f2-b0ad-6fea46af6756`**.
+  Corpus labels (0.3/0.7) reference it via `sheet_token`.
+- QR decodes cleanly at 200dpi raster; a uuid4 payload is QR version ~3. On real
+  degraded photocopies this is the case to watch in Phase 5.
+- Right edge of the sheet has no perimeter marks (3 sides covered). Acceptable for
+  a throwaway; the Phase 4 real sheet gets a full 4-side perimeter.
+
+**Commit:** _(this commit)_
