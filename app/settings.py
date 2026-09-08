@@ -30,8 +30,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_q",
+    "app.core",
     "app.web",
 ]
+
+AUTH_USER_MODEL = "core.Professor"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

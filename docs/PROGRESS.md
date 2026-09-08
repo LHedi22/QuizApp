@@ -290,3 +290,89 @@ not read the corpus). Phase 5 does — do not close Phase 5 against synthetic im
 ---
 
 # ===== PHASE 1 — Data model + auth + migrations + shared geometry config =====
+
+## phase-1 — decisions signed off by user (2026-09-09)
+
+Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
+
+- **D1** custom user model — APPROVED. `app.core.Professor` = `AUTH_USER_MODEL`,
+  `USERNAME_FIELD="email"`, no username, set before first migration.
+- **D2** JSON columns — APPROVED. Postgres `JSONField` for `question.options`,
+  `question.correct_options`, `version.question_order`, `version.option_order`,
+  `answer.detected_options`, `audit_event.detail`. `option_order` = string keys.
+- **D3** score numeric type — APPROVED: **`FloatField`** for `default_points`,
+  `question.points`, `answer.score`, `submission.total_score`.
+- **D4** immutability enforcement — APPROVED: **app layer + DB trigger**. App:
+  `save()` guards + no admin/form exposure. DB: Postgres `BEFORE UPDATE` triggers
+  (RunSQL migration) blocking `question_order`/`option_order`/`qr_id` changes on
+  `versions` and any `UPDATE` on `audit_event`. (DELETE deliberately not
+  trigger-blocked — cascade on a whole-quiz teardown and the R1.5 not-yet-printed
+  "discard versions" path both need it; version-delete is gated in app logic.)
+- **D5** `config/` at repo root — APPROVED.
+- **D6** `sheet_template.json` v1 numbers — APPROVED as proposed: A4, 12mm margins,
+  `printable_column_width_mm=176`, Helvetica `10.5pt`, `max_chars_per_option=92`
+  (recomputed in tests), `capacity_by_n={2:120,3:120,4:120,5:100,6:80}`, no separate
+  Letter block in v1.
+
+## phase-1.1 — Data model + ordered migrations   (2026-09-09)
+
+**Done:**
+- New Django app **`app.core`** (label `core`) — all 8 Appendix A models in
+  `models.py`: `Professor` (custom `AUTH_USER_MODEL`, email-keyed, no username),
+  `Quiz`, `Question`, `Version`, `RosterEntry`, `Submission`, `Answer`, `AuditEvent`.
+- `managers.py`: `ProfessorManager` (create_user/create_superuser) + `OwnedManager`
+  / `OwnedQuerySet.owned_by(user)` with `_OWNER_LOOKUP` (FK path each model → owning
+  professor); feeds subtask 1.2.
+- `exceptions.py`: `ImmutableFieldError`.
+- `admin.py`: `ProfessorAdmin(UserAdmin)` (the password-recovery path, §3.1);
+  `VersionAdmin` with shuffle maps + qr_id readonly; `AuditEventAdmin` with
+  add/change/delete all disabled.
+- Migrations: `0001_initial` (models + 4 CheckConstraints + 3 UniqueConstraints),
+  `0002_immutability_triggers` (hand-written `RunSQL`, decision D4):
+  - `core_version` BEFORE UPDATE trigger → raises if `question_order` /
+    `option_order` / `qr_id` change;
+  - `core_auditevent` BEFORE UPDATE trigger → raises on any update.
+  DELETE deliberately not trigger-blocked (cascade teardown + R1.5 discard-versions
+  path need it).
+- App-layer guards: `Version.save()` compares the 3 immutable fields to the stored
+  row and raises; `AuditEvent.save()` raises on update, `.delete()` always raises.
+- `settings.py`: `app.core` in `INSTALLED_APPS` (before `app.web`);
+  `AUTH_USER_MODEL = "core.Professor"`.
+- Scores are `FloatField` (D3); JSON columns are `JSONField` (D2).
+- `tests/conftest.py` (professor / quiz / version / submission factories);
+  `tests/test_data_model.py` (10 introspection tests); `tests/test_immutability.py`
+  (5 tests — app guard + DB trigger for both version maps and audit events;
+  `printed_at` still mutable).
+
+**DoD proof:**
+- `python manage.py makemigrations --check --dry-run` → `No changes detected` (0)
+- fresh DB `python manage.py migrate` → `core.0001_initial OK`,
+  `core.0002_immutability_triggers OK`; `migrate --check` → 0
+- `psql \dt core_*` → 8 tables (+ 2 M2M perm tables);
+  `pg_trigger` → `quizscan_version_maps_immutable`, `quizscan_auditevent_append_only`
+- `python manage.py check` → 0 issues
+- `bash scripts/ci.sh` → `All checks passed!` / `39 passed` / `core.0001` + `core.0002`
+  applied to a fresh DB / `migrate --check` clean → `ALL GREEN`
+- `ruff check .` clean
+
+**Notes / affects later phases:**
+- CharFields that Appendix A calls "nullable" (`failure_reason`, `student_label`,
+  `answer_hash`, `rectified_image_path`, `flag_reason`, `external_id`) are
+  `blank=True, default=""` not `null=True` (Django idiom / ruff DJ001). `""` is the
+  "absent" sentinel for these — code should test truthiness, not `is None`.
+  Genuinely-nullable non-strings keep `null=True` (`printed_at`, `total_score`,
+  `score`, `correct`, `edited_at`, `roster_entry`, `duplicate_of`, `batch_id`,
+  `page_number`, `actor_professor`).
+- `Submission.version` is `on_delete=PROTECT` (a version must not vanish under a
+  graded submission). `Version.quiz` / `Question.quiz` are `CASCADE` — the R3.5
+  printed-lock and R1.5 discard-rules are enforced in **app logic** (Phase 3/9),
+  not the DB.
+- Trigger SQL references literal table names `core_version` / `core_auditevent`.
+  Renaming the `core` app or those models means editing migration 0002's reverse +
+  a new forward migration. Documented here so it isn't a surprise.
+- `AuditEvent` cascade-delete (whole-quiz teardown) bypasses the `.delete()` guard
+  (Django collector calls `QuerySet.delete()`), which is intended.
+- `_OWNER_LOOKUP` in `managers.py` must gain an entry for every future owned model;
+  `test_data_model.test_owner_lookup_covers_every_owned_model` enforces it.
+
+**Commit:** _(phase-1: data model + ordered migrations + immutability triggers (1.1))_
