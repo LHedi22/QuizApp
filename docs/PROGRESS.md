@@ -181,4 +181,4 @@ Format per entry:
 - Django resolved: **5.1.15**. `check --deploy` W-codes are tracked, not fixed, until
   the prototype graduates to a host.
 
-**Commit:** _(phase-0: Django project + Postgres settings + Django-Q2 (0.4))_
+**Commit:** 613fe36
