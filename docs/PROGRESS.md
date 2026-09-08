@@ -402,4 +402,4 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
 - R0.3 (unauth request rejected before data) is covered in 1.3 against the first
   protected view.
 
-**Commit:** _(phase-1: ownership isolation primitives + cross-account tests (1.2))_
+**Commit:** e286230
