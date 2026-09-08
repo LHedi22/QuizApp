@@ -1,0 +1,7 @@
+# Corpus images are binary. Git LFS decision is made in Phase 0 subtask 0.7,
+# once real file sizes are known; until then track normally as binary.
+corpus/images/** binary
+corpus/_source/*.pdf binary
+corpus/_source/*.png binary
+*.pdf binary
+*.png binary

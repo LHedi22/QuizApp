@@ -1,0 +1,44 @@
+[project]
+name = "quizscanapp"
+version = "0.0.0"
+description = "Exam version generator & OMR scanner (clean rebuild). See docs/REBUILD_SPEC.md."
+requires-python = ">=3.11"
+dependencies = [
+    "Django>=5.1,<5.2",
+    "psycopg[binary]>=3.2",
+    "dj-database-url>=2.2",
+    "django-q2>=1.7",
+    "gunicorn>=23.0",
+    "reportlab>=4.2",
+    "qrcode[pil]>=8.0",
+    "Pillow>=10.4",
+    "PyMuPDF>=1.24",
+    "pyzbar>=0.1.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6",
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app", "app.omr", "app.grading", "app.pdf", "app.web"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = [".venv", "corpus", "migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+# DJANGO_SETTINGS_MODULE is added in subtask 0.2 once app/settings.py exists.
