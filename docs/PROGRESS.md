@@ -702,4 +702,4 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
   stamps it on each `Version`.
 - The generator is seeded for tests; production calls `seed=None`.
 
-**Commit:** _(phase-3: pure version generator + feasibility + anti-clustering (3.1-3.3))_
+**Commit:** c269d77
