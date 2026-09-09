@@ -197,13 +197,16 @@ fraction of a second, and small enough that the pathological case fails fast).
 
 ## Phase 3 exit checklist
 
-- [ ] E1 signed off (`version.anticluster_fallback`, `MAX_RESHUFFLE_ATTEMPTS`)
-- [ ] 3.1 generator core — permutations + key recovery (incl. multi-correct,
-      non-identity) tests green; stays pure
-- [ ] 3.2 feasibility — `m<1`/empty/`InfeasibleVersionCount` + saturating compare
-- [ ] 3.3 anti-clustering — both R2.5 constraints hold for every version, histograms
-      distinct, `max_letter_count` values match, pathological case terminates with
-      fallback
-- [ ] 3.4 persist — atomic `Version` creation, `status→versioned`, no re-shuffle
-      path (introspection), DB round-trip key recovery
-- [ ] `scripts/ci.sh` green
+- [x] E1 signed off 2026-09-09 (`version.anticluster_fallback`, `MAX_RESHUFFLE_ATTEMPTS=200`)
+- [x] 3.1 generator core — permutations + key recovery (multi-correct, non-identity)
+      tests green; pure  (commit c269d77)
+- [x] 3.2 feasibility — `m<1`/empty/`InfeasibleVersionCount` + saturating compare  (c269d77)
+- [x] 3.3 anti-clustering — both R2.5 constraints hold every version, histograms
+      distinct, `max_letter_count` matches spec, pathological case → fallback in <3s  (c269d77)
+- [x] 3.4 persist — atomic `Version` creation, `status→versioned`, no re-shuffle
+      path (regex introspection), DB round-trip key recovery  (commit 3b25c22, verified)
+- [x] `scripts/ci.sh` green — `189 passed`, clean-DB migrate `0001`+`0002`+`0003`,
+      `makemigrations --check` 0  (verified via podman Postgres; re-run on `docker`
+      runtime once Docker Desktop is healthy)
+
+**Phase 3 complete.**
