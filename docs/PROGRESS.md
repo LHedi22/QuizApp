@@ -539,3 +539,43 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
   recorded here; if ever revisited it's `points * max(-1.0, fraction)` + test edits.
 
 **Commit:** a5e1cc5
+
+## phase-2.3a — .xlsx parser (pure half)   (2026-09-09)
+
+**Done:**
+- `openpyxl>=3.1` added to `pyproject.toml` deps (installed).
+- `app/core/xlsx_ingest.py` — pure parser, no Django. `parse_workbook(source, *,
+  n_options, max_chars_per_option, max_questions) -> ParseResult`:
+  - `ParseResult` buckets: `header_errors` / `file_errors` / `row_errors`
+    (`RowError(row, reasons)`) / `questions` (`ParsedQuestion`). `.ok` iff all empty.
+  - Header (R1.3, before any row parsing): name-matched (case+whitespace
+    insensitive), required `question_text` + `option_1..N` + `correct_options`,
+    optional `points`; reports missing / no-header / duplicate / **unexpected**
+    columns (unknown cols rejected — strictness over silent misloads).
+  - Whole-file: `> max_questions` rows → `file_errors` (R3.2 capacity, checked
+    before row parsing); header-only file → `file_errors`.
+  - Row (R1.4, every reason in one pass): empty `question_text`; ≠ N non-empty
+    option cells; case-insensitive duplicate option text; option longer than
+    `max_chars_per_option` (§3.2A); `correct_options` empty or naming a letter
+    outside `A-<Nth>` (multi-letter tokens like "AC" rejected — format is
+    comma/space separated); `points` non-numeric / non-finite / negative.
+  - All-or-nothing: any `row_errors` → `questions` cleared.
+  - `ParsedQuestion.is_multi` = `len(correct_options) > 1` (not stored — Appendix A).
+- `tests/test_xlsx_ingest.py` — 23 tests: happy path (single/multi/blank-points),
+  case-insensitive headers, every header-error kind, multi-reason row, each R1.4
+  row check parametrized, all-or-nothing, over-capacity, blank-row skipping,
+  corrupt file, and one test against the real `sheet_template` numbers.
+
+**DoD proof:**
+- `pytest tests/test_xlsx_ingest.py -q` → `23 passed`
+- `ruff check .` clean
+
+**Notes / affects later phases:**
+- **Persistence half (`app/core/ingest.py` + DB tests) is NOT done** — see 2.3b.
+  Blocked on Docker/Postgres (down since 2026-09-09).
+- Unknown/extra columns are a hard error. If a professor wants annotation columns
+  later, relax `_validate_header` (documented choice).
+- "AC" (meaning A and C without a separator) is rejected. R1.2's format is explicit;
+  revisit if professors trip on it often.
+
+**Commit:** _(phase-2: xlsx parser pure half (2.3a))_
