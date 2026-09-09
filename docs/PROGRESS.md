@@ -643,4 +643,4 @@ for exactly this.
 - `openpyxl` is now a runtime dependency; the Docker image rebuild (when Docker is
   back) will pick it up via `pip install .`.
 
-**Commit:** _(phase-2: verify 2.2-2.4 DoDs against Postgres (podman workaround))_
+**Commit:** c51541b
