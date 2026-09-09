@@ -42,9 +42,24 @@ class QuizAdmin(admin.ModelAdmin):
 
 @admin.register(Version)
 class VersionAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "version_number", "template_version", "printed_at", "created_at"]
-    # shuffle maps + qr_id are immutable (R2.7): show, never edit.
-    readonly_fields = ["qr_id", "question_order", "option_order", "created_at"]
+    list_display = [
+        "__str__",
+        "version_number",
+        "template_version",
+        "anticluster_fallback",
+        "printed_at",
+        "created_at",
+    ]
+    list_filter = ["anticluster_fallback"]
+    # shuffle maps + qr_id are immutable (R2.7); the fallback flag is set by the
+    # generator, not a human: show, never edit.
+    readonly_fields = [
+        "qr_id",
+        "question_order",
+        "option_order",
+        "anticluster_fallback",
+        "created_at",
+    ]
 
 
 @admin.register(AuditEvent)

@@ -120,6 +120,9 @@ class Version(models.Model):
     option_order = models.JSONField()  # {"<canonical_question_id>": [canonical_option_index, ...]}
     template_version = models.PositiveIntegerField()
     printed_at = models.DateTimeField(null=True, blank=True)
+    # True only when anti-clustering (R2.5) exhausted its re-roll budget on a
+    # pathologically small quiz and kept the least-skewed candidate (E1, §5 Phase 3).
+    anticluster_fallback = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = OwnedManager()

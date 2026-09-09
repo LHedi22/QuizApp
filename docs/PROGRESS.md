@@ -703,3 +703,44 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
 - The generator is seeded for tests; production calls `seed=None`.
 
 **Commit:** c269d77
+
+## phase-3.4 — persist versions + one-shot immutability (R2.1/R2.6/R2.7)   (2026-09-09)
+
+**Done:**
+- `Version.anticluster_fallback` `BooleanField(default=False)` (E1) + migration
+  `0003_version_anticluster_fallback`. Read-only + `list_filter` in `VersionAdmin`.
+- `app/core/versioning_service.py`:
+  - `generate_versions_for_quiz(quiz, m, *, seed=None) -> list[Version]` — requires
+    `status == draft` + questions exist (`VersionGenerationBlocked` else); maps the
+    quiz's `Question.correct_options` letters to canonical indices; calls the pure
+    `generate_versions` (which raises `ValueError`/`InfeasibleVersionCount` before
+    anything is written); then `transaction.atomic()`: `bulk_create` `Version` rows
+    (`version_number` 1..m, uuid4 `qr_id`, `question_order` as int list,
+    `option_order` keyed by `str(qid)` per Appendix A, `template_version` from
+    `sheet_template`, `anticluster_fallback`), set `quiz.status = versioned`.
+  - `recover_correct_letters(version, question)` — sheet letters from the stored
+    maps alone (R2.4 helper; also used by Phase 7 grading translation).
+  - **No** `regenerate` / `reshuffle` / `update_*_order` function (R2.7).
+- `tests/test_versioning_service.py` — 9 tests: m versions + status flip + questions
+  frozen; infeasible/`m≤0`/blocked → nothing written, status stays draft; DB
+  round-trip key recovery from `option_order[str(qid)]`; **R2.7 introspection** —
+  regex scan of `app.core` + `app.grading` finds no reshuffle/regenerate/remap
+  callable; service-generated version maps rejected by both the app guard and the
+  DB trigger.
+
+**DoD proof (Postgres :15432 via podman):**
+- `pytest -q` → **`189 passed`** (full suite: +25 pure versioning +9 service)
+- `manage.py makemigrations --check --dry-run` → `No changes detected` (0)
+- fresh DB → `core.0001` + `core.0002` + `core.0003` applied; `migrate --check` → 0
+- `manage.py check` → 0 issues; `ruff check .` clean
+
+**Notes / affects later phases:**
+- `option_order` JSON keys are **strings** (`"123"`), values are int lists.
+  `question_order` is an int list. Phase 4 (PDF) and Phase 7 (grading translation)
+  must `str(qid)` when indexing `option_order`. `recover_correct_letters` already does.
+- `generate_versions_for_quiz` is the one entry point; wire the Phase 8 UI + the
+  Django-Q2 task (large batches) onto it.
+- Every version stamps the **current** `template_version` (1). Phase 4 may bump it;
+  versions already generated keep their stamp (R3.2 / §3.2A).
+
+**Commit:** _(phase-3: persist versions + one-shot immutability (3.4))_
