@@ -2,8 +2,36 @@
 from __future__ import annotations
 
 import uuid
+from io import BytesIO
 
+import openpyxl
 import pytest
+
+QUESTION_HEADER = [
+    "question_text",
+    "option_1",
+    "option_2",
+    "option_3",
+    "option_4",
+    "correct_options",
+    "points",
+]
+
+
+@pytest.fixture
+def make_xlsx():
+    """Build an .xlsx workbook (bytes) from a list of row lists."""
+
+    def _build(rows: list[list]) -> bytes:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        for row in rows:
+            ws.append(row)
+        buf = BytesIO()
+        wb.save(buf)
+        return buf.getvalue()
+
+    return _build
 
 
 @pytest.fixture

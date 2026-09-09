@@ -579,3 +579,36 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
   revisit if professors trip on it often.
 
 **Commit:** 8df48d5
+
+## phase-2.2 / 2.3b / 2.4 — quiz service + ingest persistence + R1.5 guards   (CODE COMPLETE, DB DoD PENDING — 2026-09-09)
+
+**Status:** Code + tests written; **DoDs NOT yet verified** because Docker/Postgres
+is still down. Run `bash scripts/ci.sh` once Docker is restarted to close these.
+
+**Done (code):**
+- **2.2** `app/core/services.py` `create_quiz(*, professor, title, options_per_question,
+  marking_mode, negative_marking, default_points)` — field-keyed `ValidationError`
+  on: blank title, N∉[2,6], non-int N, bad `marking_mode`, non-numeric/negative
+  `default_points`; nothing written on failure. Defaults: partial / off / 1.0.
+- **2.3b** `app/core/ingest.py`:
+  - `ingest_quiz(quiz, source) -> ParseResult` — loads `sheet_template`, calls the
+    pure `parse_workbook` with `quiz.options_per_question`,
+    `template.max_chars_per_option`, `template.capacity_for(N)`; on `result.ok`,
+    inside `transaction.atomic()`: delete existing questions + `bulk_create` new
+    ones in file order. On any error: returns the result, writes nothing.
+  - `discard_questions(quiz)`.
+- **2.4** `IngestBlocked` + `_require_draft()` — `ingest_quiz` and `discard_questions`
+  both refuse unless `quiz.status == "draft"` (R1.5). Re-ingest while draft replaces.
+- `tests/conftest.py`: `make_xlsx` fixture + `QUESTION_HEADER` constant.
+- `tests/test_quiz_service.py` (10), `tests/test_ingest.py` (5),
+  `tests/test_question_immutability.py` (3) — all `@pytest.mark.django_db`.
+
+**DoD proof so far (no DB):**
+- `ruff check .` clean
+- `pytest --collect-only` → 19 new tests collected, imports resolve
+
+**Still to verify (needs Postgres):**
+- `pytest tests/test_quiz_service.py tests/test_ingest.py tests/test_question_immutability.py`
+- `bash scripts/ci.sh` green with all Phase 2 additions
+
+**Commit:** _(phase-2: quiz service + ingest persistence + R1.5 guards — code, DB pending)_
