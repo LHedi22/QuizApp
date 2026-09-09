@@ -538,4 +538,4 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
 - Negative-marking floor decision (no per-question floor) is user-confirmed and
   recorded here; if ever revisited it's `points * max(-1.0, fraction)` + test edits.
 
-**Commit:** _(phase-2: score_question pure function per R7 (2.1))_
+**Commit:** a5e1cc5
