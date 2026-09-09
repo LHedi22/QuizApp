@@ -503,4 +503,4 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
 - US Letter has no v1 block (R3.2: Letter is wider → never fewer questions). Add a
   `letter` block in Phase 4 only if proof-printing needs it.
 
-**Commit:** _(phase-1: sheet_template.json v1 + pure loader (1.4))_
+**Commit:** bdbe446
