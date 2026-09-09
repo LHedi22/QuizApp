@@ -578,4 +578,4 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
 - "AC" (meaning A and C without a separator) is rejected. R1.2's format is explicit;
   revisit if professors trip on it often.
 
-**Commit:** _(phase-2: xlsx parser pure half (2.3a))_
+**Commit:** 8df48d5
