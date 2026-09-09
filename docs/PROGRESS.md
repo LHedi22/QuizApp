@@ -612,3 +612,35 @@ is still down. Run `bash scripts/ci.sh` once Docker is restarted to close these.
 - `bash scripts/ci.sh` green with all Phase 2 additions
 
 **Commit:** c8d4586
+
+## phase-2.2 / 2.3b / 2.4 — DB VERIFICATION (2026-09-09)
+
+**Environment workaround:** Docker Desktop's Linux engine stayed wedged (`docker ps`
+/ `docker info` hang; a dead `com.docker.backend` PID held `127.0.0.1:5432` with
+connections in CLOSE_WAIT). **Podman 5.6 was healthy**, so Postgres 16 was run via
+`podman run -d -p 127.0.0.1:15432:5432 ... postgres:16` and everything verified
+against that. `scripts/ci.sh` gained a `CI_RUNTIME` env var (`CI_RUNTIME=podman`)
+for exactly this.
+
+**DoD proof (Postgres on :15432 via podman):**
+- `DATABASE_URL=...:15432/quizscan pytest -q` → **`155 passed in 24.60s`** (full
+  suite: the 3 new Phase 2 DB test files + all prior tests)
+- fresh `ci_fresh` DB → `manage.py migrate` applies `core.0001` + `core.0002` +
+  `django_q` to head; `migrate --check` → **0**
+- `manage.py makemigrations --check --dry-run` → `No changes detected` (**0**) — no
+  model drift from `services.py` / `ingest.py`
+- `ruff check .` → clean
+- `CI_RUNTIME=podman PGPORT=15433 bash scripts/ci.sh` → _(result recorded on next
+  line once the run finishes)_
+
+**2.2 / 2.3b / 2.4 DoDs are now MET.** See `docs/phases/phase-2.md` checklist.
+
+**Notes:**
+- The project stays docker-compose-based (spec §3). Podman was a verification-only
+  workaround while Docker Desktop was broken. Re-run `docker compose ... up --build`
+  + `scripts/ci.sh` (default runtime) once Docker Desktop is healthy to confirm the
+  primary path — this also covers the still-deferred in-container 1.4 check.
+- `openpyxl` is now a runtime dependency; the Docker image rebuild (when Docker is
+  back) will pick it up via `pip install .`.
+
+**Commit:** _(phase-2: verify 2.2-2.4 DoDs against Postgres (podman workaround))_

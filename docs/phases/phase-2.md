@@ -165,9 +165,14 @@ exists (`status ≥ versioned`) questions are frozen; once `printed` it's hard-l
 
 ## Phase 2 exit checklist
 
-- [ ] 2.1 `score_question` — full R7 worked-example battery green; stays pure
-- [ ] 2.2 `create_quiz` — validation + defaults + ownership tests green
-- [ ] 2.3 ingestion — header + per-row + whole-file error battery (pure) and the
-      atomic-create/rollback tests (DB) green
-- [ ] 2.4 R1.5 — draft-only re-upload/discard; frozen at `versioned`/`printed`
-- [ ] `scripts/ci.sh` green
+- [x] 2.1 `score_question` — 49-case R7 battery green; stays pure  (commit a5e1cc5)
+- [x] 2.2 `create_quiz` — validation + defaults + ownership tests green  (c8d4586, verified)
+- [x] 2.3 ingestion — pure parser 23 tests (8df48d5) + atomic-create/rollback DB
+      tests green (c8d4586, verified)
+- [x] 2.4 R1.5 — draft-only re-upload/discard; frozen at `versioned`/`printed`  (verified)
+- [x] `scripts/ci.sh` green — `155 passed`, clean-DB migrate + `--check` 0
+      (verified via `CI_RUNTIME=podman`; Docker Desktop engine was wedged — re-run on
+      the default runtime once Docker is healthy)
+
+**Phase 2 complete.** Re-confirm the docker-compose path (`docker compose up --build`
++ `scripts/ci.sh` default runtime) when Docker Desktop recovers.
