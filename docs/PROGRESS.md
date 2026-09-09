@@ -658,3 +658,48 @@ Note: `CI_RUNTIME=podman bash scripts/ci.sh` was started but abandoned after 30+
 impractically slow. The **equivalent steps were run directly** and all pass (see the
 phase-2 verification entry: 155 tests, clean-DB migrate, `--check` 0). `scripts/ci.sh`
 on the normal `docker` runtime is the real gate — re-run when Docker Desktop is back.
+
+## phase-3.1 / 3.2 / 3.3 — pure version generator + feasibility + anti-clustering   (2026-09-09)
+
+**Done:**
+- `app/grading/versioning.py` — pure, no Django. `generate_versions(questions, *,
+  n_options, m, seed=None) -> list[VersionPlan]`:
+  - **3.1** independent question-order shuffle + independent per-question
+    option-order shuffle; `question_order` = permuted qids, `option_order[qid]` =
+    permutation of `range(N)`. `correct_sheet_letters(option_order, correct_indices)`
+    helper — key is recoverable from the maps alone (R2.4).
+  - **3.2** guards: `ValueError` on `m < 1` / empty questions / N∉[2,6] / bad correct
+    indices; `InfeasibleVersionCount` when `m` > distinct question orderings
+    (`distinct_orderings_at_least` — saturating, never computes a huge factorial,
+    R2.2). Distinct `question_order` across the batch via rejection-resampling
+    (terminates because feasibility passed).
+  - **3.3** anti-clustering (R2.5, multi-correct-aware per Q11): module constants
+    `MAX_CONSECUTIVE_SAME_LETTER=2`, `LETTER_COUNT_SLACK=0.20`
+    (`max_letter_count = ceil(n*(1/N+0.20))`), `MAX_RESHUFFLE_ATTEMPTS=200`.
+    `_offending_positions` checks, **per letter independently**, no run of 3+ and
+    total ≤ cap (each letter of a multi-correct K counted once). Also re-rolls when
+    a version's per-letter histogram equals an already-accepted one. Bounded loop →
+    always terminates; on exhaustion keeps the least-skewed candidate and sets
+    `anticluster_fallback = True`.
+- `tests/test_versioning_core.py` (5), `tests/test_versioning_feasibility.py` (8),
+  `tests/test_versioning_anticluster.py` (12).
+
+**DoD proof:**
+- `pytest tests/test_versioning_*.py -q` → `25 passed`
+- key recovery round-trip verified for ≥3 versions × every question incl.
+  multi-correct + non-identity orders
+- `max_letter_count(40,4)==18`, `(100,5)==40`, `(80,6)==30` — match R2.5 examples
+- realistic quiz (Q=40, N=4, multi every 7th, m=10) over 6 seeds: every version
+  passes both constraints, all 10 histograms pairwise distinct, no fallback
+- pathological unsatisfiable quiz (N=2, every K={A,B}, m=1) returns in < 3s with
+  `anticluster_fallback=True` — provable termination
+- `ruff check .` clean; `app.grading` stays web-framework-free (purity test)
+
+**Notes / affects later phases:**
+- 3.4 (persist) adds `version.anticluster_fallback` (E1, migration 0003) and
+  `generate_versions_for_quiz` — needs Postgres.
+- Phase 4 reads `template_version` from `sheet_template.json` at generation time and
+  stamps it on each `Version`.
+- The generator is seeded for tests; production calls `seed=None`.
+
+**Commit:** _(phase-3: pure version generator + feasibility + anti-clustering (3.1-3.3))_
