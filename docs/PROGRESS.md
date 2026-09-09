@@ -504,3 +504,38 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
   `letter` block in Phase 4 only if proof-printing needs it.
 
 **Commit:** bdbe446
+
+## phase-2.1 — score_question pure function (R7)   (2026-09-09)
+
+**Done:**
+- `app/grading/scoring.py` — `score_question(marked_set, key_set, points, mode,
+  negative) -> float`, the **only** scoring implementation (R7.5). Verbatim R7:
+  - R7.1: `M = ∅` → `0.0` under every mode × negative combination;
+  - R7.2 partial: `fraction = (c−w)/k`; negative off → `points·max(0, fraction)`
+    (floored at 0/question), negative on → `points·fraction` (**no per-question
+    floor** — user-confirmed 2026-09-09; matches R7.4 "not floored", can be
+    < −points for a multi-correct question with many wrong marks);
+  - R7.3 all_or_nothing: `M == K` → `points`; else (`M ≠ ∅`) → `0` / `−points`.
+  - Raises `ValueError` on `k == 0` or an unknown `mode`. Accepts any iterable.
+  Pure — no I/O, no Django.
+- `tests/test_scoring.py` — 49 cases: R7.1 across all toggles/key sizes; every
+  R7.2/R7.3 worked example from the spec, incl. the k=3 c=0 w=3 → −points bound and
+  the confirmed no-floor case (k=2, c=0, w=4 → −2·points); `points` varied off 1.0
+  to check the multiplication; determinism/never-raises sweep over k=1..6 × |M|=0..6.
+
+**DoD proof:**
+- `pytest tests/test_scoring.py tests/test_purity.py -q` → `49 passed`
+- `pytest` over all non-DB files → `81 passed` (Docker/Postgres still down, so the
+  DB-backed core tests were not run this pass — they passed at 65-total in 1.4)
+- `ruff check .` clean; `app.grading` stays web-framework-free (purity test).
+
+**Notes / affects later phases:**
+- R7.5 *parity* (two call sites produce identical output) is asserted in **Phase 7**
+  when the scan pipeline exists; Phase 9 manual override is the other call site. Both
+  MUST call `score_question` and nothing else.
+- `mode` is the raw `Quiz.MarkingMode` value string (`"partial"` /
+  `"all_or_nothing"`) — no adapter needed.
+- Negative-marking floor decision (no per-question floor) is user-confirmed and
+  recorded here; if ever revisited it's `points * max(-1.0, fraction)` + test edits.
+
+**Commit:** _(phase-2: score_question pure function per R7 (2.1))_
