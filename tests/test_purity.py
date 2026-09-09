@@ -12,6 +12,7 @@ _CHECK = (
     "import importlib, sys; "
     "importlib.import_module('app.omr'); "
     "importlib.import_module('app.grading'); "
+    "importlib.import_module('app.sheet_template').load_template(); "
     "banned = [m for m in sys.modules "
     "if m == 'django' or m.startswith(('django.', 'flask', 'fastapi', 'starlette'))]; "
     "print(banned); "

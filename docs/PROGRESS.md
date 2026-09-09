@@ -444,3 +444,63 @@ Per `docs/phases/phase-1.md` "Decisions for sign-off" (CLAUDE.md rule 5):
 - `healthz` moved from a standalone path to `app.web.urls`; still at `/healthz`.
 
 **Commit:** 6e68631
+
+## phase-1.4 — config/sheet_template.json v1 + pure loader   (2026-09-09)
+
+**Done (decision D6, as proposed):**
+- `config/sheet_template.json` — `template_version: 1`; page A4 210×297mm, margin
+  12mm; `question_paper`: `printable_column_width_mm 176.0`, Helvetica `10.5pt`,
+  `max_chars_per_option 92`; `answer_sheet.capacity_by_n {2:120,3:120,4:120,5:100,6:80}`
+  (verbatim R3.2). Numbers only — no bubble-grid / fiducial / timing-mark geometry
+  (Phase 4 adds those to this same file, may bump `template_version` ≤ 15%).
+- `app/sheet_template.py` — **pure** loader (no Django). `load_template(path=None)` →
+  frozen `SheetTemplate` dataclass; `_validate()` checks positivity, that
+  `printable_column_width_mm` fits between the margins, that `capacity_by_n` covers
+  exactly N=2..6, and that `max_chars_per_option` matches
+  `derive_max_chars_per_option(width, font_pt)` within ±1 (advance ≈ 0.5em ×
+  font_pt, × 0.97 safety) — so a hand-edited stale value fails on load.
+  `SheetTemplate.capacity_for(n)`.
+- `tests/test_sheet_template.py` — 9 tests: v1 loads + self-consistent; capacity
+  table == R3.2; `max_chars_per_option` recomputable; committed file shape;
+  5 parametrized "tampered file rejected" cases.
+- `tests/test_purity.py` extended: the subprocess now also
+  `import app.sheet_template` **and calls `load_template()`** — proves it loads with
+  zero web-framework modules present.
+- `pyproject.toml`: `[tool.setuptools]` explicit package list →
+  `[tool.setuptools.packages.find] include = ["app*"]` (the old list silently
+  omitted `app.core`; broke `pip install .` in Docker though editable installs
+  masked it).
+- `deploy/Dockerfile`: `COPY config ./config` so `load_template()` resolves in the
+  container.
+
+**DoD proof:**
+- `python -c "from app.sheet_template import load_template; print(load_template())"`
+  → `SheetTemplate(template_version=1, ... max_chars_per_option=92,
+  capacity_by_n={2:120,3:120,4:120,5:100,6:80})`
+- `pytest -q` → `65 passed`; `bash scripts/ci.sh` → `All checks passed!` /
+  `65 passed` / `core.0001` + `core.0002` to a fresh DB / `ALL GREEN`
+- `ruff check .` clean
+- packaging fix verified:
+  `python -c "from setuptools import find_packages; print(find_packages('.', include=['app*']))"`
+  → `['app', 'app.core', 'app.core.migrations', 'app.grading', 'app.omr', 'app.pdf',
+  'app.web']` (the old explicit list omitted `app.core`).
+- **Deferred (environment):** the compose-level rebuild + in-container
+  `load_template()` smoke could not run — Docker Desktop's daemon hung mid-session
+  (`docker ps` timing out, API 500s) after repeated image builds. Re-verify with
+  `docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build`
+  once Docker is restarted. Not blocking: `find_packages` proves the fix and the
+  0.5 compose build already proved the image builds+runs; only `COPY config` is new.
+
+**Notes / affects later phases:**
+- Phase 2 ingestion validates R1.4 (option too long) against
+  `SheetTemplate.max_chars_per_option` and R3.2 (quiz capacity) against
+  `capacity_for(N)` — importing `app.sheet_template`, never re-deriving.
+- Phase 4 renderer + Phase 5/6 OMR read the **same** file; when Phase 4 adds grid
+  geometry it extends the JSON + loader dataclass and bumps `template_version`.
+- `derive_max_chars_per_option` uses a crude 0.5em advance heuristic. If Phase 4
+  proof-printing shows real overflow, adjust the heuristic **and** the stored value
+  together (the ±1 validation ties them).
+- US Letter has no v1 block (R3.2: Letter is wider → never fewer questions). Add a
+  `letter` block in Phase 4 only if proof-printing needs it.
+
+**Commit:** _(phase-1: sheet_template.json v1 + pure loader (1.4))_

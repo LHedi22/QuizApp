@@ -1,0 +1,19 @@
+{
+  "template_version": 1,
+  "_comment": "Shared sheet geometry (REBUILD_SPEC 3.2A). v1 = numbers only; the bubble grid / fiducial / timing-mark coordinates are added in Phase 4 against this same file (which may bump template_version by <=15%). Read by ingestion validation (Phase 2), the PDF renderer (Phase 4), and the OMR pipeline (Phase 5/6). Loader: app/sheet_template.py.",
+  "page": {
+    "size": "A4",
+    "width_mm": 210.0,
+    "height_mm": 297.0,
+    "margin_mm": 12.0
+  },
+  "question_paper": {
+    "printable_column_width_mm": 176.0,
+    "option_font": "Helvetica",
+    "option_font_size_pt": 10.5,
+    "max_chars_per_option": 92
+  },
+  "answer_sheet": {
+    "capacity_by_n": { "2": 120, "3": 120, "4": 120, "5": 100, "6": 80 }
+  }
+}

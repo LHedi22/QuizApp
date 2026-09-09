@@ -223,10 +223,16 @@ Confirming the Phase 0 assumption: `config/sheet_template.json` at the **repo ro
 
 ## Phase 1 exit checklist
 
-- [ ] 1.1 data model — `makemigrations --check` clean, `migrate --check` 0,
-      introspection + immutability tests pass  *(after D1–D5 sign-off)*
-- [ ] 1.2 ownership — cross-account isolation test: 404 on every path, both directions
-- [ ] 1.3 auth — register/login/logout e2e; `password_reset` is `NoReverseMatch` + 404
-- [ ] 1.4 geometry config — `sheet_template.json` v1 loads + validates; capacity table
-      matches R3.2  *(after D6 sign-off)*
-- [ ] `scripts/ci.sh` green with the new schema
+- [x] D1–D6 signed off by user 2026-09-09 (see PROGRESS.md)
+- [x] 1.1 data model — `makemigrations --check` clean, `migrate --check` 0,
+      introspection + immutability (app + DB trigger) tests pass  (commit a80c354)
+- [x] 1.2 ownership — `owned_by` + `get_owned_or_404` + cross-account test for all 7
+      non-Professor models; **route-level coverage deferred to Phases 8–9**  (e286230)
+- [x] 1.3 auth — register/login/logout e2e; `password_reset` is `NoReverseMatch` + 404
+      (commit 6e68631)
+- [x] 1.4 geometry config — `sheet_template.json` v1 loads + validates; capacity table
+      == R3.2; pure loader covered by the purity test  (commit pending)
+- [x] `scripts/ci.sh` green with the new schema (`65 passed`, core 0001+0002 to fresh DB)
+
+**Phase 1 complete** except the R0.2 route-level verification, which by nature lands
+with the data views (Phases 8–9) — noted in PROGRESS 1.2.
