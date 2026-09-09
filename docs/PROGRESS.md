@@ -611,4 +611,4 @@ is still down. Run `bash scripts/ci.sh` once Docker is restarted to close these.
 - `pytest tests/test_quiz_service.py tests/test_ingest.py tests/test_question_immutability.py`
 - `bash scripts/ci.sh` green with all Phase 2 additions
 
-**Commit:** _(phase-2: quiz service + ingest persistence + R1.5 guards — code, DB pending)_
+**Commit:** c8d4586
