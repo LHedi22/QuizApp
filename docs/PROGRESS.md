@@ -743,4 +743,4 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
 - Every version stamps the **current** `template_version` (1). Phase 4 may bump it;
   versions already generated keep their stamp (R3.2 / §3.2A).
 
-**Commit:** _(phase-3: persist versions + one-shot immutability (3.4))_
+**Commit:** 3b25c22
