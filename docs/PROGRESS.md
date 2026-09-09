@@ -644,3 +644,17 @@ for exactly this.
   back) will pick it up via `pip install .`.
 
 **Commit:** c51541b
+
+## phase-3 — E1 signed off (2026-09-09)
+
+- **E1** APPROVED: add `version.anticluster_fallback` (`BooleanField`, default
+  `False`) via a new migration `0003`. `True` only when `MAX_RESHUFFLE_ATTEMPTS` was
+  exhausted (a pathologically small quiz where R2.5 is unsatisfiable) and the
+  least-skewed candidate was used. Read-only in admin + Phase 8 version list.
+- `MAX_RESHUFFLE_ATTEMPTS` = **200** (per version).
+
+Note: `CI_RUNTIME=podman bash scripts/ci.sh` was started but abandoned after 30+ min
+— `podman exec` overhead on Windows (used in the pg-wait loop + psql calls) makes it
+impractically slow. The **equivalent steps were run directly** and all pass (see the
+phase-2 verification entry: 155 tests, clean-DB migrate, `--check` 0). `scripts/ci.sh`
+on the normal `docker` runtime is the real gate — re-run when Docker Desktop is back.
