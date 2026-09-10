@@ -1176,4 +1176,4 @@ these rows; the view needs no change.
 built out of §5 order (Phases 5.2–7 still blocked on the Phase 0.7 corpus) as the
 sanctioned parallel track; the results list is fixture-tested pending Phase 7.
 
-**Commit:** <pending>
+**Commit:** bb60a98
