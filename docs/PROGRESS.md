@@ -1355,7 +1355,7 @@ professor re-assigns from the new list.
 - `version_mark_printed` is a thin wrapper over `mark_version_printed`; the R3.5
   `quiz.status` flip + R1.5 upload block are exercised end-to-end here.
 
-**Commit:** <pending>
+**Commit:** d56ba3c
 
 **PHASE 9 COMPLETE.** All 6 subtasks done + verified. Built out of §5 order (as
 Phase 8 was) — Phases 5.2–7 remain blocked on the Phase 0.7 corpus. Review UI +
