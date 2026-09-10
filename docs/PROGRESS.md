@@ -1281,4 +1281,45 @@ update`) — tests rely on insertion order for `-created_at`, never `.update()`.
 - `pytest tests/test_web_review_actions.py -q` → `5 passed`
 - `pytest -q` → **`321 passed`**; `ruff check .` clean
 
-**Commit:** <pending>
+**Commit:** 0094aa9
+
+## phase-9.4 — Roster paste (R6.4)   (2026-09-10)
+
+**Done:**
+- `app/web/review_views.py` `quiz_roster(request, pk)` — GET prefills a textarea
+  with the current roster (`_roster_as_text`, `label` or `label, external_id`
+  per line); POST → `RosterPasteForm` (`clean_text` runs `parse_roster`) →
+  `review_service.replace_roster`, count message, redirect to the quiz. A bad
+  line → 200 with the form error (`"...no name..."`), roster unchanged.
+- Route `quizzes/<pk>/roster` (name `quiz_roster`); `web/quiz_roster.html`;
+  "Roster (N)" link on `quiz_detail.html`.
+- `tests/test_web_roster.py` — 5 tests: paste 3 then replace with 2; bad line →
+  form error + roster kept; pasted entries appear in the submission assignment
+  form; GET prefill shows `label, id`; foreign quiz → 404.
+
+**DoD proof:** `pytest tests/test_web_roster.py -q` → `5 passed`; `ruff` clean.
+
+**Notes:** `replace_roster` deletes-then-recreates, so a re-paste unsets any
+submission `roster_entry` pointing at a removed row (FK `SET_NULL`) — the
+professor re-assigns from the new list.
+
+**Commit:** <pending-a>
+
+## phase-9.5 — CSV export (R6.6)   (2026-09-10)
+
+**Done:**
+- `app/web/quiz_views.py` `quiz_results_csv(request, pk)` — `text/csv`
+  attachment. Header `student, version, total, q1..qN` (N = quiz question
+  count). One row per own-quiz submission in **submission-id order**; `student`
+  = roster label / free text / `""`; per-question cell = that submission's
+  `answer.score` for `question_no` (blank if no answer row or `score is None`);
+  `total` blank when `total_score is None`.
+- Route `quizzes/<pk>/results.csv` (name `quiz_results_csv`); "Download CSV" link
+  on `quiz_results.html`.
+- `tests/test_web_results_csv.py` — 3 tests: headers + shape (header + 3 rows);
+  values incl. a missing-answer blank cell and a `None` total; foreign quiz →
+  404, unauthenticated → login redirect.
+
+**DoD proof:** `pytest tests/test_web_results_csv.py -q` → `3 passed`; `ruff` clean.
+
+**Commit:** <pending-b>

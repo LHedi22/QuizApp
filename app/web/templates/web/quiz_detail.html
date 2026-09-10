@@ -3,7 +3,10 @@
 {% block content %}
   <p class="muted"><a href="{% url 'dashboard' %}">&larr; Quizzes</a></p>
   <h1>{{ quiz.title }} <span class="badge">{{ quiz.get_status_display }}</span></h1>
-  <p><a href="{% url 'quiz_results' quiz.pk %}">View results &rarr;</a></p>
+  <p>
+    <a href="{% url 'quiz_results' quiz.pk %}">View results &rarr;</a> ·
+    <a href="{% url 'quiz_roster' quiz.pk %}">Roster ({{ quiz.roster_entries.count }})</a>
+  </p>
 
   <h2>Configuration</h2>
   <table>

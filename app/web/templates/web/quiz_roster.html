@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Roster — {{ quiz.title }}{% endblock %}
+{% block content %}
+  <p class="muted"><a href="{% url 'quiz_detail' quiz.pk %}">&larr; {{ quiz.title }}</a></p>
+  <h1>Roster</h1>
+  <p class="muted">One student per line: <code>name</code> or <code>name, external_id</code>.
+     Saving replaces the whole roster.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="field">
+      {{ form.text }}
+      {% if form.text.errors %}<ul class="errorlist">{% for e in form.text.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <button type="submit">Save roster</button>
+    <a href="{% url 'quiz_detail' quiz.pk %}">Cancel</a>
+  </form>
+{% endblock %}

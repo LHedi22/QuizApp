@@ -22,9 +22,11 @@ urlpatterns = [
     path("quizzes/<int:pk>/edit", quiz_views.quiz_edit, name="quiz_edit"),
     path("quizzes/<int:pk>/delete", quiz_views.quiz_delete, name="quiz_delete"),
     path("quizzes/<int:pk>/results", quiz_views.quiz_results, name="quiz_results"),
+    path("quizzes/<int:pk>/results.csv", quiz_views.quiz_results_csv, name="quiz_results_csv"),
     path("versions/<int:pk>/<str:kind>.pdf", quiz_views.version_pdf, name="version_pdf"),
     # --- Review + audit (Phase 9) ---
     path("submissions/<int:pk>/", review_views.submission_detail, name="submission_detail"),
     path("submissions/<int:pk>/assign", review_views.submission_assign, name="submission_assign"),
     path("answers/<int:pk>/override", review_views.answer_override, name="answer_override"),
+    path("quizzes/<int:pk>/roster", review_views.quiz_roster, name="quiz_roster"),
 ]

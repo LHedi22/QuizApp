@@ -11,10 +11,10 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from app.core.access import get_owned_or_404
-from app.core.models import Answer, Question, Submission
-from app.core.review_service import assign_student, override_answer
+from app.core.models import Answer, Question, Quiz, Submission
+from app.core.review_service import assign_student, override_answer, replace_roster
 from app.core.versioning_service import recover_correct_letters
-from app.web.forms import AnswerOverrideForm, StudentAssignForm
+from app.web.forms import AnswerOverrideForm, RosterPasteForm, StudentAssignForm
 
 _LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -96,3 +96,27 @@ def submission_assign(request: HttpRequest, pk: int) -> HttpResponse:
         for error in form.non_field_errors():
             messages.error(request, error)
     return redirect("submission_detail", pk=submission.pk)
+
+
+def _roster_as_text(quiz: Quiz) -> str:
+    lines = []
+    for entry in quiz.roster_entries.all():
+        lines.append(f"{entry.label}, {entry.external_id}" if entry.external_id else entry.label)
+    return "\n".join(lines)
+
+
+@login_required
+def quiz_roster(request: HttpRequest, pk: int) -> HttpResponse:
+    """Paste / replace a quiz's roster (R6.4)."""
+    quiz = get_owned_or_404(Quiz, pk, request.user)
+    if request.method == "POST":
+        form = RosterPasteForm(request.POST)
+        if form.is_valid():
+            created = replace_roster(
+                quiz=quiz, professor=request.user, text=form.cleaned_data["text"]
+            )
+            messages.success(request, f"Roster saved — {len(created)} student(s).")
+            return redirect("quiz_detail", pk=quiz.pk)
+    else:
+        form = RosterPasteForm(initial={"text": _roster_as_text(quiz)})
+    return render(request, "web/quiz_roster.html", {"quiz": quiz, "form": form})
