@@ -863,7 +863,7 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
 web-framework-free, rule 7). `_escape` guards `&<>` in question text for the
 Paragraph markup.
 
-**Commit:** _(phase-4: question paper renderer (4.3))_
+**Commit:** 6378517
 
 ## phase-4.4 — storage interface + deterministic cache + cache-busting (R3.4)   (2026-09-10)
 
@@ -899,4 +899,4 @@ Paragraph markup.
   spec only mandates `question_order`/`option_order`/`qr_id` immutability. In
   production nothing changes it; the test mutates it to exercise cache-busting.
 
-**Commit:** _(phase-4: storage interface + PDF cache + cache-busting (4.4))_
+**Commit:** 37e5d10
