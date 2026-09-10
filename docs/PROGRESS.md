@@ -744,3 +744,16 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
   versions already generated keep their stamp (R3.2 / §3.2A).
 
 **Commit:** 3b25c22
+
+## phase-4 — F1 signed off (2026-09-10)
+
+- **F1** APPROVED as proposed: `config/sheet_template.json` → **`template_version: 2`**
+  with the `answer_sheet.geometry` block (fiducials 7mm @ 10mm inset; timing ticks
+  length 4 / thickness 1.5 on side edges + top; QR 24mm at (16,13)mm; grid
+  `columns_by_n {2:4,3:4,4:4,5:3,6:3}`, band `top_mm 46` / `bottom_mm 282`,
+  `min/max_row_pitch 6.5/11.0`, `bubble_pitch 6.0`, `bubble_diameter 3.6`,
+  `label_gutter 9.0`, `column_gap 8.0`). `page` / `question_paper` /
+  `capacity_by_n` unchanged. Row pitch computed per (count, N) to fit one page.
+  Capacity table (120/120/120/100/80) unchanged pending the user's physical
+  proof-print (a later ≤15% adjustment would be `template_version: 3`).
+- **Question paper**: ReportLab **Platypus** (no WeasyPrint — native-dep weight).
