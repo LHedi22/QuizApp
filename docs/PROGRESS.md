@@ -1228,4 +1228,37 @@ Plan: `docs/phases/phase-9.md`.
 - `mark_version_printed` does the R3.5 `quiz.status` flip in app logic (no DB
   trigger) — safe because it's the sole writer of `printed_at`.
 
+**Commit:** e75e6f1
+
+## phase-9.2 — Submission detail view (R6.2) + audit history (R6.5)   (2026-09-10)
+
+**Done:**
+- `app/web/review_views.py` `submission_detail(request, pk)` —
+  `get_owned_or_404(Submission)`; builds an answer row per `answer` (question no,
+  `detected_options`, confidence, canonical correct letters via
+  `recover_correct_letters`, `correct`, flagged+reason, score, `manually_edited`);
+  **flagged rows sorted to the top**, then question order. Passes the
+  submission's `AuditEvent`s newest-first and an unbound `StudentAssignForm`.
+- `app/web/forms.py`: `AnswerOverrideForm` (`n_options`-kwarg
+  `MultipleChoiceField` of `A..`, `required=False`), `StudentAssignForm`
+  (`roster_entry` ModelChoice + `student_label`; `clean` rejects both/neither),
+  `RosterPasteForm` (textarea; `clean_text` runs `parse_roster`).
+- `web/submission_detail.html` — assignment form, answer-sheet table with a
+  per-row A.. checkbox override form, history table. Status-cell link added on
+  `quiz_results.html`.
+- Routes `submissions/<pk>/`, `submissions/<pk>/assign`, `answers/<pk>/override`
+  (the assign/override endpoints ship here; **tested in 9.3**).
+- `tests/test_web_submission_detail.py` — 4 tests: 5-answer sheet renders all
+  rows, flagged rows precede the edited (unflagged) row, "edited" marker shown,
+  flag reason + correct key + score shown; history newest-first; **opening the
+  page writes no `AuditEvent`** (R6.5 passive-view); foreign/missing pk → 404;
+  unauthenticated → login redirect.
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_web_submission_detail.py -q` → `4 passed`
+- `pytest -q` → **`316 passed`**; `ruff check .` clean
+
+**Notes:** AuditEvent rows can't be `UPDATE`d (DB trigger `quizscan_block_audit_
+update`) — tests rely on insertion order for `-created_at`, never `.update()`.
+
 **Commit:** <pending>

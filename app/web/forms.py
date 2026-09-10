@@ -4,8 +4,11 @@ from django import forms
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
 
-from app.core.models import Quiz
+from app.core.models import Quiz, Submission
+from app.core.review_service import parse_roster
 from app.core.services import create_quiz
+
+_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 Professor = get_user_model()
 
@@ -85,6 +88,61 @@ class VersionGenerateForm(forms.Form):
     """
 
     m = forms.IntegerField(min_value=1, label="Number of versions")
+
+
+class AnswerOverrideForm(forms.Form):
+    """Professor-supplied marked-option set for one answer (R6.3). `A..` up to the
+    question's option count."""
+
+    def __init__(self, *args, n_options: int, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["marked_options"] = forms.MultipleChoiceField(
+            required=False,
+            widget=forms.CheckboxSelectMultiple,
+            choices=[(_LETTERS[i], _LETTERS[i]) for i in range(n_options)],
+        )
+
+
+class StudentAssignForm(forms.Form):
+    """Assign a submission to a student (R6.4): pick a roster entry OR type free
+    text — exactly one."""
+
+    student_label = forms.CharField(required=False, max_length=200)
+
+    def __init__(self, *args, quiz, instance: Submission | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["roster_entry"] = forms.ModelChoiceField(
+            required=False,
+            queryset=quiz.roster_entries.all(),
+            empty_label="— free text —",
+        )
+        if instance is not None and not self.is_bound:
+            self.fields["roster_entry"].initial = instance.roster_entry_id
+            self.fields["student_label"].initial = instance.student_label
+
+    def clean(self):
+        cleaned = super().clean()
+        roster_entry = cleaned.get("roster_entry")
+        label = (cleaned.get("student_label") or "").strip()
+        if roster_entry and label:
+            raise forms.ValidationError("Pick a roster entry or type a name — not both.")
+        if not roster_entry and not label:
+            raise forms.ValidationError("Pick a roster entry or type a name.")
+        return cleaned
+
+
+class RosterPasteForm(forms.Form):
+    """Paste a per-quiz roster (R6.4): one `name` or `name, external_id` per line."""
+
+    text = forms.CharField(widget=forms.Textarea, required=False, label="Roster (one per line)")
+
+    def clean_text(self) -> str:
+        text = self.cleaned_data["text"]
+        try:
+            parse_roster(text)
+        except ValueError as exc:
+            raise forms.ValidationError(str(exc)) from exc
+        return text
 
 
 class QuestionUploadForm(forms.Form):

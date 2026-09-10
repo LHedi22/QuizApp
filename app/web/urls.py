@@ -1,7 +1,7 @@
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 
-from app.web import quiz_views, views
+from app.web import quiz_views, review_views, views
 
 urlpatterns = [
     path("", quiz_views.quiz_list, name="dashboard"),
@@ -23,4 +23,8 @@ urlpatterns = [
     path("quizzes/<int:pk>/delete", quiz_views.quiz_delete, name="quiz_delete"),
     path("quizzes/<int:pk>/results", quiz_views.quiz_results, name="quiz_results"),
     path("versions/<int:pk>/<str:kind>.pdf", quiz_views.version_pdf, name="version_pdf"),
+    # --- Review + audit (Phase 9) ---
+    path("submissions/<int:pk>/", review_views.submission_detail, name="submission_detail"),
+    path("submissions/<int:pk>/assign", review_views.submission_assign, name="submission_assign"),
+    path("answers/<int:pk>/override", review_views.answer_override, name="answer_override"),
 ]

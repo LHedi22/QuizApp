@@ -29,7 +29,7 @@
     <tbody>
       {% for row in rows %}
       <tr>
-        <td>{{ row.sub.get_status_display }}</td>
+        <td><a href="{% url 'submission_detail' row.sub.pk %}">{{ row.sub.get_status_display }}</a></td>
         <td>{{ row.sub.total_score|default_if_none:"—" }}</td>
         <td class="muted">{{ row.sub.created_at|date:"Y-m-d H:i" }}</td>
         <td>{{ row.student }}</td>

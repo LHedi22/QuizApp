@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Submission #{{ submission.pk }}{% endblock %}
+{% block content %}
+  <p class="muted"><a href="{% url 'quiz_results' quiz.pk %}">&larr; {{ quiz.title }} results</a></p>
+  <h1>Submission #{{ submission.pk }}
+    <span class="badge">{{ submission.get_status_display }}</span></h1>
+  <p class="muted">
+    Version {{ version.version_number }} · captured {{ submission.created_at|date:"Y-m-d H:i" }}
+    · total {{ submission.total_score|default_if_none:"—" }}
+    {% if submission.failure_reason %} · {{ submission.get_failure_reason_display }}{% endif %}
+  </p>
+
+  <h2>Student</h2>
+  <form method="post" action="{% url 'submission_assign' submission.pk %}">
+    {% csrf_token %}
+    {% if assign_form.non_field_errors %}<ul class="errorlist">{% for e in assign_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <label>{{ assign_form.roster_entry.label }} {{ assign_form.roster_entry }}</label>
+    <label>or name {{ assign_form.student_label }}</label>
+    <button type="submit">Assign</button>
+  </form>
+
+  <h2>Answer sheet</h2>
+  <table>
+    <thead>
+      <tr><th>Q</th><th>Read</th><th>Conf.</th><th>Correct key</th><th>✓/✗</th>
+          <th>Score</th><th>Override</th></tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.answer.question_no }}{% if row.answer.flagged %} <span class="badge">flag: {{ row.answer.flag_reason }}</span>{% endif %}</td>
+        <td>{{ row.answer.detected_options|join:"," |default:"—" }}
+            {% if row.answer.manually_edited %}<span class="badge">edited</span>{% endif %}</td>
+        <td class="muted">{{ row.answer.confidence|floatformat:2 }}</td>
+        <td>{{ row.correct_letters|join:"," }}</td>
+        <td>{% if row.answer.correct %}✓{% elif row.answer.correct is False %}✗{% else %}—{% endif %}</td>
+        <td>{{ row.answer.score|default_if_none:"—" }}</td>
+        <td>
+          <form method="post" action="{% url 'answer_override' row.answer.pk %}">
+            {% csrf_token %}
+            {% for letter in option_letters %}
+              <label><input type="checkbox" name="marked_options" value="{{ letter }}"
+                {% if letter in row.answer.detected_options %}checked{% endif %}> {{ letter }}</label>
+            {% endfor %}
+            <button type="submit">save</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted">Override: tick the option letters the student actually marked, then “save”.</p>
+
+  <h2>History</h2>
+  {% if events %}
+  <table>
+    <thead><tr><th>When</th><th>Action</th><th>By</th><th>Detail</th></tr></thead>
+    <tbody>
+      {% for e in events %}
+      <tr>
+        <td class="muted">{{ e.created_at|date:"Y-m-d H:i" }}</td>
+        <td>{{ e.get_action_display }}</td>
+        <td>{% if e.is_system %}system{% else %}{{ e.actor_professor }}{% endif %}</td>
+        <td class="muted">{{ e.detail }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No recorded actions.</p>
+  {% endif %}
+{% endblock %}
