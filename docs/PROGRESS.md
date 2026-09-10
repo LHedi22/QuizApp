@@ -800,3 +800,44 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
   is `template_version: 3` (≤15%, §3.2A).
 
 **Commit:** dbb1731
+
+## phase-4.2 — answer sheet renderer (R3.1/R3.3/R3.4)   (2026-09-10)
+
+**Done:**
+- `app/pdf/answer_sheet.py` `render_answer_sheet(*, num_questions, n_options, qr_id,
+  page_label, template=None) -> bytes` — ReportLab canvas in **invariant mode**
+  (fixed date/ID → byte-identical). Drives everything off `app.sheet_template`
+  geometry (`fiducial_centres_mm`, `bubble_centres`) — no hardcoded coords.
+  - 4 corner fiducials (solid squares at `fiducial.inset_mm`);
+  - registration perimeter on **3 sides**: a tick per bubble row down the left AND
+    right edges, a tick per option column across the top;
+  - QR (top-left, `geometry.qr` box) encoding `qr_id`, **error-correction Q**,
+    box_size 12 for a crisp embed;
+  - header: "OMR ANSWER SHEET" + the `page_label` + fill instruction;
+  - grid: per-block `A..` column headers, `Qn` row labels (6pt so `Q120` clears the
+    first bubble at `label_gutter 9mm`), thin open circles at `bubble_centres`.
+  - Raises `OverCapacityError` (from `bubble_centres`) at capacity+1.
+- `tests/test_answer_sheet_render.py` — 11 tests: byte-identical renders; **QR
+  decodes after raster(200dpi)+downscale+blur+JPEG** (representative, not
+  pathological — a real 12MP phone gives far more px/module); every N renders at
+  capacity, capacity+1 → `OverCapacityError`; N=2/6 single page; **fiducial dark
+  centroids land within ~0.8mm of the config insets** (rasterised at 150dpi);
+  writes proof PDFs.
+- Proof PNGs (`build/proof_n4_40.png`, `n4_120`, `n6_80`) rendered + visually
+  checked: perimeter + grid + QR correct; 120Q N=4 and 80Q N=6 both fit one page.
+
+**DoD proof (Postgres :15432 via podman):**
+- `pytest -q` → `246 passed` (was 224; +11 answer sheet +11 geometry... see counts)
+- `ruff check .` clean
+
+**Notes / affects later phases:**
+- QR is **ERROR_CORRECT_Q** (not M) — the F1 24mm box + a 36-char UUID needed the
+  extra redundancy to survive scan degradation in the synthetic test. Real-corpus
+  validation is Phase 5.
+- The physical **proof-print** (F1) is still owed: user prints `build/proof_*.pdf`
+  at 100% and confirms bubble alignment + single-page + QR scans with a phone. Any
+  ≤15% tweak → `template_version: 3`.
+- OMR (Phase 5/6) crops bubbles from the **same** `bubble_centres(...)` call — the
+  renderer and pipeline can't disagree.
+
+**Commit:** _(phase-4: answer sheet renderer (4.2))_
