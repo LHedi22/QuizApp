@@ -827,7 +827,7 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
   checked: perimeter + grid + QR correct; 120Q N=4 and 80Q N=6 both fit one page.
 
 **DoD proof (Postgres :15432 via podman):**
-- `pytest -q` → `246 passed` (was 224; +11 answer sheet +11 geometry... see counts)
+- `pytest -q` → `235 passed` (224 + 11 answer sheet)
 - `ruff check .` clean
 
 **Notes / affects later phases:**
