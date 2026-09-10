@@ -9,7 +9,7 @@ except `fiducial_px`. Validated by `scripts/check_corpus.py`.
 | `capture_type` | `"phone_photo"` \| `"copier_scan"` | How it was captured. |
 | `photocopy_generations` | int 0–3 | How many times the sheet was photocopied **before** being filled in. 0 = first-generation laser print. |
 | `orientation` | `"upright"` \| `"upside_down"` \| `"reversed"` | Gross orientation of the sheet in the capture. `upside_down` ≈ 180° rotation; `reversed` = fed backwards through a scanner. |
-| `sheet_token` | string | The `sheet_token` from a `corpus/_source/*.meta.json`. Ties the capture to a known printed master and its question/option counts. |
+| `sheet_token` | string | The `sheet_token` from a `corpus/_source/*.meta.json` (for `sheet_*` masters this is the UUID the QR encodes). Ties the capture to a known printed master and its question/option counts. `scripts/new_label.py` fills it from the image filename or `--sheet`. |
 | `lighting` | string | Free text: `"even indoor"`, `"hard shadow lower-left"`, `"glare top edge"`, `"gradient dark at bottom"`, … |
 | `marked_options` | object | `"<question number>"` → list of filled letters. `[]` = left blank. Letters must be within `A..` for the sheet's option count. This is the per-bubble filled/empty ground truth (Phase 6). |
 | `notes` | string | Anything else worth knowing. May be `""`. |

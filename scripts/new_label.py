@@ -1,11 +1,15 @@
 """Scaffold a corpus label file for an image, ready for the user to fill in.
 
 Usage:
-    python scripts/new_label.py corpus/images/phone_0001.jpg
+    python scripts/new_label.py corpus/images/phone_sheet_b_0001.jpg
+    python scripts/new_label.py corpus/images/x.jpg --sheet sheet_b_40q_n4
 
 Guesses `capture_type` from the filename ("scan"/"copier" -> copier_scan, else
-phone_photo), pre-fills `sheet_token` when exactly one source sheet exists, and seeds
-`marked_options` with every question mapped to [] (blank). The user edits the rest.
+phone_photo). Resolves the source sheet from `--sheet` (a source `name` or
+`sheet_token`), else from a source `name` that appears in the image filename, else
+(if there is exactly one source) that one. When resolved, pre-fills `sheet_token`
+and seeds `marked_options` with every question mapped to [] (blank). The user edits
+orientation / lighting / photocopy_generations / the real marked bubbles.
 """
 
 from __future__ import annotations
@@ -24,15 +28,31 @@ def load_sources(source_dir: Path) -> dict[str, dict]:
     return out
 
 
-def build_template(image_path: Path, corpus_root: Path) -> dict:
+def _resolve_source(sources: dict[str, dict], image_name: str, sheet_arg: str | None) -> dict | None:
+    """Pick the source sheet for an image: explicit --sheet, else a source `name`
+    appearing in the filename, else the sole source if there is only one."""
+    if sheet_arg:
+        for meta in sources.values():
+            if sheet_arg in (meta["sheet_token"], meta.get("name"), meta.get("short_name")):
+                return meta
+        return None
+    lname = image_name.lower()
+    for meta in sources.values():
+        for key in (meta.get("name"), meta.get("short_name")):
+            if key and key.lower() in lname:
+                return meta
+    return next(iter(sources.values())) if len(sources) == 1 else None
+
+
+def build_template(image_path: Path, corpus_root: Path, sheet_arg: str | None = None) -> dict:
     sources = load_sources(corpus_root / "_source")
     name = image_path.name.lower()
     capture_type = "copier_scan" if ("scan" in name or "copier" in name) else "phone_photo"
 
+    meta = _resolve_source(sources, image_path.name, sheet_arg)
     token = ""
     marked: dict[str, list[str]] = {}
-    if len(sources) == 1:
-        meta = next(iter(sources.values()))
+    if meta is not None:
         token = meta["sheet_token"]
         marked = {str(q): [] for q in range(1, meta["questions"] + 1)}
 
@@ -51,6 +71,7 @@ def build_template(image_path: Path, corpus_root: Path) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("image", help="path to an image under corpus/images/")
+    ap.add_argument("--sheet", help="source sheet name or token (else guessed from filename)")
     ap.add_argument("--force", action="store_true", help="overwrite an existing label")
     args = ap.parse_args()
 
@@ -65,8 +86,15 @@ def main() -> None:
         print(f"FAIL: {label_path} already exists (use --force)", file=sys.stderr)
         raise SystemExit(1)
 
+    template = build_template(image_path, corpus_root, args.sheet)
+    if not template["sheet_token"]:
+        print(
+            "WARN: could not resolve a source sheet — set `sheet_token` and "
+            "`marked_options` by hand, or pass --sheet <name>",
+            file=sys.stderr,
+        )
     label_path.parent.mkdir(parents=True, exist_ok=True)
-    label_path.write_text(json.dumps(build_template(image_path, corpus_root), indent=2))
+    label_path.write_text(json.dumps(template, indent=2))
     print(f"wrote {label_path} - now fill in orientation, lighting, and marked_options")
 
 

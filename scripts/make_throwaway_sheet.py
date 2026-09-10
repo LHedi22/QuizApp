@@ -1,4 +1,10 @@
-"""Generate a THROWAWAY single-page OMR test sheet for the Phase 0 capture corpus.
+"""Generate a THROWAWAY single-page OMR test sheet.
+
+DEPRECATED for the capture corpus (2026-09-10): Phase 4 finished the real
+renderer, so the Phase 0.7 corpus is now captured on
+`corpus/_source/sheet_*.pdf` — generate those with
+`python scripts/make_corpus_sheets.py`. This script is kept only as a standalone
+ReportLab/pyzbar reference and for its tests.
 
 This is NOT the production answer sheet. Its geometry is disposable and defined
 entirely in this file. Phases 1/4/5 must not import or reference it — the real

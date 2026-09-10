@@ -1519,3 +1519,48 @@ pipeline-blocked) — same rationale as Phases 8–9. R8.1 (clean-DB migrate),
 R8.2 (documented + *tested* backup/restore), R8.3 (CI zero-LLM scan) all met.
 Left for a Phase-7 follow-up: R8.2 exercised with real scan images, a richer
 reseed. F1 physical proof-print remains a user task.
+
+---
+
+## phase-0.7 prep — corpus masters switched to real Phase-4 sheets   (2026-09-10)
+
+**Context:** Phase 0.7 (physical capture) is still deferred, but Phase 4 finished
+the real answer-sheet renderer. The capture protocol pointed at the pre-Phase-4
+`throwaway_v0` sheet, whose geometry does **not** match
+`config/sheet_template.json` — a corpus shot on it could validate alignment but
+not the real Phase 5/6 bubble-crop geometry or QR-lookup. Fixed before the user
+prints anything.
+
+**Done:**
+- `scripts/make_corpus_sheets.py` — generates 4 real Phase-4 answer sheets via
+  `app.pdf.answer_sheet.render_answer_sheet` (geometry from the shared template):
+  `sheet_a_20q_n4`, `sheet_b_40q_n4`, `sheet_c_30q_n5`, `sheet_d_24q_n6` —
+  spanning the 4-column (N≤4) and 3-column (N∈{5,6}) grids and a range of row
+  pitches. Deterministic `qr_id` per master (`uuid5`). Emits `.pdf`, `.png`
+  preview (150dpi), `.meta.json` (`sheet_token` = the QR's UUID, `questions`,
+  `options`, `short_name`, ground-truth `fiducial_centres_mm` /
+  `bubble_centres_mm`). Committed to `corpus/_source/`; `throwaway_v0.*` removed.
+- `scripts/new_label.py` — now resolves the source sheet from the image filename
+  (`phone_sheet_b_0001.jpg` → `sheet_b`) or `--sheet <name|token>`, seeding
+  `sheet_token` + the right number of `marked_options` slots; warns if it can't.
+- `scripts/make_throwaway_sheet.py` — deprecation note at the top pointing here
+  (kept only as a standalone ReportLab/pyzbar reference + its tests).
+- `corpus/README.md`, `corpus/labels/SCHEMA.md`, `docs/phases/phase-0.md` — the
+  capture protocol now prints the 4 real masters; filenames encode the master.
+- `tests/test_corpus_sheets.py` — 6 tests: committed masters == a fresh
+  deterministic render; each meta's shape + `qr_id` + the QR decodes to the
+  token from a 200dpi raster; `check_corpus.load_sources` resolves all 4 and no
+  longer sees the throwaway token.
+
+**DoD proof:**
+- `python scripts/make_corpus_sheets.py` → 4 masters; re-run → byte-identical PDFs.
+- QR decodes to the meta `sheet_token` for all 4 (200dpi raster + pyzbar).
+- `pytest -q` → **341 passed** (335 + 6); `ruff check .` clean.
+- `new_label.py` on `phone_sheet_b_0001.jpg` → `sheet_token` = sheet_b's, 40
+  `marked_options` slots; `--sheet sheet_d_24q_n6` → 24 slots.
+
+**Still the user's task (Phase 0.7):** print the 4 masters, photocopy/fill/
+photograph/scan/label per `corpus/README.md`, `python scripts/check_corpus.py`
+exits 0, commit. Then Phase 5.2 — stop and ask (rule 9).
+
+**Commit:** <pending>
