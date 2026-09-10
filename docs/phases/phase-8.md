@@ -244,13 +244,19 @@ flags, filter by status, sort by score and capture time.
 
 ## Phase 8 exit checklist
 
-- [ ] 8.1 quiz CRUD — create/list/detail/edit/delete, owner-scoped, invalid input
-      writes nothing
-- [ ] 8.2 ingest UI — every header+row error rendered, never a 500, R1.5 rules
-- [ ] 8.3 version generation UI — feasibility/blocked errors surfaced, nothing
-      written on failure
-- [ ] 8.4 PDF download — `application/pdf`, byte-identical re-download
-- [ ] 8.5 results list — status filter + score/capture sort, fixture-tested
-- [ ] 8.6 nav + WhiteNoise + full R0.2/R0.3 route-isolation sweep
-- [ ] full suite green on Postgres; `scripts/ci.sh` green on the `docker` runtime
-- [ ] `docs/PROGRESS.md` entry per subtask, one commit each
+- [x] 8.1 quiz CRUD — create/list/detail/edit/delete, owner-scoped, invalid input
+      writes nothing  (a091449)
+- [x] 8.2 ingest UI — every header+row error rendered, never a 500, R1.5 rules  (aff699b)
+- [x] 8.3 version generation UI — feasibility/blocked errors surfaced, nothing
+      written on failure  (785b026)
+- [x] 8.4 PDF download — `application/pdf`, byte-identical re-download  (3f7fa54)
+- [x] 8.5 results list — status filter + score/capture sort, fixture-tested  (03d3aed)
+- [x] 8.6 nav + WhiteNoise + full R0.2/R0.3 route-isolation sweep
+- [x] full suite green on Postgres (298); fresh-DB migrate + `--check` clean
+- [x] `docs/PROGRESS.md` entry per subtask, one commit each
+
+**Phase 8 complete** (2026-09-10). Still owed on the real `docker` runtime once
+Docker Desktop's compose path is re-exercised: `scripts/ci.sh` (default),
+`docker compose ... up --build` with the WhiteNoise `collectstatic` (no longer
+`|| true`). The results list is wired to real `Submission` rows but only
+fixture-populated until Phase 7 exists.

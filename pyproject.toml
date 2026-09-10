@@ -9,6 +9,7 @@ dependencies = [
     "dj-database-url>=2.2",
     "django-q2>=1.7",
     "gunicorn>=23.0",
+    "whitenoise>=6.6",
     "reportlab>=4.2",
     "qrcode[pil]>=8.0",
     "Pillow>=10.4",
@@ -47,3 +48,7 @@ testpaths = ["tests"]
 addopts = "-ra"
 pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "app.settings"
+filterwarnings = [
+    # WhiteNoise warns when STATIC_ROOT is absent; tests don't run collectstatic.
+    "ignore:No directory at:UserWarning",
+]

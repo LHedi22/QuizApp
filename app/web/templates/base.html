@@ -1,32 +1,10 @@
-<!doctype html>
+{% load static %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}quizscanapp{% endblock %}</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body { font: 15px/1.5 system-ui, sans-serif; margin: 0; }
-    header.nav { display: flex; gap: 1rem; align-items: baseline;
-      padding: .7rem 1.2rem; border-bottom: 1px solid #8884; }
-    header.nav a { text-decoration: none; }
-    header.nav .spacer { flex: 1; }
-    main { max-width: 60rem; margin: 0 auto; padding: 1.2rem; }
-    h1 { font-size: 1.5rem; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid #8883; }
-    .messages { list-style: none; padding: 0; margin: 0 0 1rem; }
-    .messages li { padding: .5rem .8rem; border-radius: 4px; margin-bottom: .4rem;
-      border: 1px solid #8886; }
-    .messages li.success { border-color: #3a3; }
-    .messages li.error { border-color: #c44; }
-    .errorlist { color: #c44; margin: .2rem 0; padding-left: 1rem; }
-    .field { margin-bottom: .8rem; }
-    .muted { color: #8889; }
-    form.inline { display: inline; }
-    .badge { font-size: .8em; border: 1px solid #8886; border-radius: 3px;
-      padding: 0 .3rem; }
-  </style>
+  <link rel="stylesheet" href="{% static 'web/app.css' %}">
 </head>
 <body>
   {% if user.is_authenticated %}

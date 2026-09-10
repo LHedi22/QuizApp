@@ -1133,4 +1133,47 @@ for the batch scan path).
 exist yet (user-approved 2026-09-10). When Phase 7 lands, the pipeline populates
 these rows; the view needs no change.
 
+**Commit:** 03d3aed
+
+## phase-8.6 — Nav + WhiteNoise + R0.2/R0.3 route sweep   (2026-09-10)
+
+**Done:**
+- **WhiteNoise** added: `pyproject.toml` dep `whitenoise>=6.6`; `settings.py`
+  `whitenoise.middleware.WhiteNoiseMiddleware` right after `SecurityMiddleware`;
+  `STORAGES["staticfiles"]` → `whitenoise.storage.CompressedStaticFilesStorage`
+  (gzip/brotli, **not** manifest-hashed — no CDN, avoids a collectstatic
+  ordering constraint). `deploy/entrypoint.sh`: dropped `|| true` on
+  `collectstatic`.
+- `base.html`: inline `<style>` moved to `app/web/static/web/app.css`, linked via
+  `{% static %}`; nav bar + `messages` block already added in 8.1.
+- `pyproject.toml` pytest `filterwarnings` ignores WhiteNoise's "No directory at"
+  `UserWarning` (tests don't run collectstatic).
+- `tests/test_web_route_isolation.py` — 2 sweep tests over **12** (method, url)
+  pairs covering every Phase 8 route:
+  - unauthenticated → 302 to `/accounts/login/` (R0.3);
+  - professor B against professor A's quiz / version ids → **404** (R0.2, never
+    403). Closes the route-level R0.2 verification deferred from Phase 1.2.
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_web_route_isolation.py -q` → `2 passed`
+- `pytest -q` → **`298 passed`**; `ruff check .` clean
+- `manage.py collectstatic --noinput` → 128 files, no collision
+- `manage.py check --deploy` → 6 warnings, **same classes** as the Phase 0.4
+  baseline (SECRET_KEY / SESSION_COOKIE_SECURE / CSRF_COOKIE_SECURE / DEBUG — all
+  TLS/localhost-prototype, non-blocking); `manage.py check` → 0
+- fresh `ci_fresh` DB → `migrate` to head; `migrate --check` → exit 0
+- `makemigrations --check --dry-run` → No changes detected
+
+**Notes / affects later phases:**
+- **Deps added**: `whitenoise 6.12.0` (in `.venv` + pyproject core deps).
+- Docker image rebuild picks up whitenoise via `pip install .`; the `web`
+  entrypoint now hard-fails if `collectstatic` fails (intended).
+- **Still owed on the `docker` runtime**: `scripts/ci.sh` (default),
+  `docker compose ... up --build` with the new static pipeline — Docker Desktop
+  daemon is up this session but the full compose path wasn't re-exercised.
+
+**Phase 8 complete.** All 6 subtasks done + verified on Postgres. Phase 8 was
+built out of §5 order (Phases 5.2–7 still blocked on the Phase 0.7 corpus) as the
+sanctioned parallel track; the results list is fixture-tested pending Phase 7.
+
 **Commit:** <pending>
