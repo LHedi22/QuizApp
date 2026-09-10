@@ -31,6 +31,16 @@
   {% endif %}
 
   <h2>Versions ({{ versions|length }})</h2>
+  {% if can_generate %}
+  <form method="post" action="{% url 'version_generate' quiz.pk %}">
+    {% csrf_token %}
+    <label for="{{ version_form.m.id_for_label }}">Generate</label>
+    {{ version_form.m }} versions
+    <button type="submit">Generate</button>
+  </form>
+  {% elif can_edit %}
+  <p class="muted">Add questions before generating versions.</p>
+  {% endif %}
   {% if versions %}
   <table>
     <thead><tr><th>#</th><th>QR id</th><th>Template</th><th></th></tr></thead>

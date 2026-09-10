@@ -18,6 +18,7 @@ urlpatterns = [
     path("quizzes/new", quiz_views.quiz_create, name="quiz_create"),
     path("quizzes/<int:pk>/", quiz_views.quiz_detail, name="quiz_detail"),
     path("quizzes/<int:pk>/upload", quiz_views.quiz_upload, name="quiz_upload"),
+    path("quizzes/<int:pk>/versions/generate", quiz_views.version_generate, name="version_generate"),
     path("quizzes/<int:pk>/edit", quiz_views.quiz_edit, name="quiz_edit"),
     path("quizzes/<int:pk>/delete", quiz_views.quiz_delete, name="quiz_delete"),
 ]

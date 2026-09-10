@@ -15,7 +15,14 @@ from django.shortcuts import redirect, render
 from app.core.access import get_owned_or_404
 from app.core.ingest import IngestBlocked, ingest_quiz
 from app.core.models import Quiz
-from app.web.forms import QuestionUploadForm, QuizConfigForm, QuizCreateForm
+from app.core.versioning_service import VersionGenerationBlocked, generate_versions_for_quiz
+from app.grading.versioning import InfeasibleVersionCount
+from app.web.forms import (
+    QuestionUploadForm,
+    QuizConfigForm,
+    QuizCreateForm,
+    VersionGenerateForm,
+)
 
 
 @login_required
@@ -42,6 +49,7 @@ def quiz_create(request: HttpRequest) -> HttpResponse:
 @login_required
 def quiz_detail(request: HttpRequest, pk: int) -> HttpResponse:
     quiz = get_owned_or_404(Quiz, pk, request.user)
+    can_edit = quiz.status == Quiz.Status.DRAFT
     return render(
         request,
         "web/quiz_detail.html",
@@ -49,9 +57,35 @@ def quiz_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "quiz": quiz,
             "questions": quiz.questions.all(),
             "versions": quiz.versions.all(),
-            "can_edit": quiz.status == Quiz.Status.DRAFT,
+            "can_edit": can_edit,
+            "can_generate": can_edit and quiz.questions.exists(),
+            "version_form": VersionGenerateForm(),
         },
     )
+
+
+@login_required
+def version_generate(request: HttpRequest, pk: int) -> HttpResponse:
+    """Generate `M` shuffled versions (R2.1). Feasibility / blocked failures
+    (R2.2/R2.6) are surfaced as a message; nothing is written on failure.
+    """
+    quiz = get_owned_or_404(Quiz, pk, request.user)
+    if request.method != "POST":
+        return redirect("quiz_detail", pk=quiz.pk)
+
+    form = VersionGenerateForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Enter a whole number of versions (1 or more).")
+        return redirect("quiz_detail", pk=quiz.pk)
+
+    try:
+        versions = generate_versions_for_quiz(quiz, form.cleaned_data["m"])
+    except (VersionGenerationBlocked, InfeasibleVersionCount, ValueError) as exc:
+        messages.error(request, str(exc))
+        return redirect("quiz_detail", pk=quiz.pk)
+
+    messages.success(request, f"{len(versions)} version(s) generated.")
+    return redirect("quiz_detail", pk=quiz.pk)
 
 
 @login_required

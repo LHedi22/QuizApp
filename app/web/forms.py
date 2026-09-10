@@ -79,6 +79,14 @@ class QuizCreateForm(forms.Form):
             raise
 
 
+class VersionGenerateForm(forms.Form):
+    """Request `M` shuffled versions (R2.1). Feasibility (R2.2) is enforced by the
+    generator, not here — the view surfaces its error.
+    """
+
+    m = forms.IntegerField(min_value=1, label="Number of versions")
+
+
 class QuestionUploadForm(forms.Form):
     """Upload a `.xlsx` question spreadsheet (R1.2). The heavy validation is the
     Phase 2 `ingest_quiz` parser; this only rejects the obviously-wrong file type.

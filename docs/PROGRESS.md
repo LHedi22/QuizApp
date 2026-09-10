@@ -1051,4 +1051,31 @@ was later removed/renamed — 259 is the true Phase 1–5.1 count on Postgres).
 - `ingest_quiz` accepts `BytesIO`; `SimpleUploadedFile` bytes round-trip fine.
 - Row-error rows render as `<td>{{ re.row }}</td>` — the test greps that markup.
 
-**Commit:** <pending>
+**Commit:** aff699b
+
+## phase-8.3 — Version generation UI   (2026-09-10)
+
+**Done:**
+- `app/web/forms.py` `VersionGenerateForm` — `m = IntegerField(min_value=1)`.
+- `app/web/quiz_views.py` `version_generate` (POST only; GET → redirect):
+  `get_owned_or_404`, calls `generate_versions_for_quiz(quiz, m)`, catches
+  `VersionGenerationBlocked` / `InfeasibleVersionCount` / `ValueError` → error
+  message + redirect, **nothing written**; success → count message + redirect.
+- `quiz_detail` context gains `can_generate` (draft + has questions) and an
+  unbound `version_form`; `quiz_detail.html` shows the generate form only then,
+  and "add questions first" while draft-without-questions.
+- Route `quizzes/<pk>/versions/generate` (name `version_generate`).
+- `tests/test_web_versions.py` — 7 tests: generate 3 → 3 rows + status
+  `versioned` + detail lists them; `m=0`/`m=-1` → 0 rows, status still draft;
+  infeasible (3-question quiz, `m=10`) → 0 rows; generate-twice blocked (stays
+  at first batch); no-questions blocked; foreign quiz → 404.
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_web_versions.py -q` → `7 passed`
+- `pytest -q` → **`284 passed`**; `ruff check .` clean
+
+**Notes:** version generation runs synchronously in the request (Phase 8 design
+choice — realistic `M ≤ 20` is fast; Django-Q2 offload is a Phase 7/11 concern
+for the batch scan path).
+
+**Commit:** aff699b
