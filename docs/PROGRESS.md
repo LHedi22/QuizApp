@@ -1512,7 +1512,7 @@ in-container 1.4 check are now verified.
 - `pytest --co -q` → **335 tests collected** (332 + 3 R8.3 scan).
 - Every fenced command in `deploy/RUNBOOK.md` was executed this phase.
 
-**Commit:** <pending>
+**Commit:** ecdebf2
 
 **PHASE 12 COMPLETE.** Worked ahead of Phases 5.2–7 / 10 / 11 (corpus- or
 pipeline-blocked) — same rationale as Phases 8–9. R8.1 (clean-DB migrate),
