@@ -966,4 +966,4 @@ keystone, scale, translation) and checks against analytic ground truth:
 the R5.2 detect-and-correct-vs-clean-fail decision. 5.1 uses provisional constants;
 its tests assert behaviour *relative to* the gate, not the gate's value.
 
-**Commit:** _(phase-5: solver core — homography + robust fit + orientation (5.1))_
+**Commit:** b9f6ef3
