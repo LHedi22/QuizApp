@@ -79,6 +79,20 @@ class QuizCreateForm(forms.Form):
             raise
 
 
+class QuestionUploadForm(forms.Form):
+    """Upload a `.xlsx` question spreadsheet (R1.2). The heavy validation is the
+    Phase 2 `ingest_quiz` parser; this only rejects the obviously-wrong file type.
+    """
+
+    file = forms.FileField(label="Question spreadsheet (.xlsx)")
+
+    def clean_file(self):
+        f = self.cleaned_data["file"]
+        if not f.name.lower().endswith(".xlsx"):
+            raise forms.ValidationError("Upload an .xlsx file (xlsx only, no CSV).")
+        return f
+
+
 class QuizConfigForm(forms.ModelForm):
     """Edit a quiz's title + grading config. `options_per_question` is deliberately
     not editable — changing N would invalidate already-ingested option counts.

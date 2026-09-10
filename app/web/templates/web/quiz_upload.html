@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Upload questions — {{ quiz.title }}{% endblock %}
+{% block content %}
+  <p class="muted"><a href="{% url 'quiz_detail' quiz.pk %}">&larr; {{ quiz.title }}</a></p>
+  <h1>Upload questions</h1>
+  <p class="muted">
+    Header row required: <code>question_text</code>,
+    <code>option_1</code>…<code>option_{{ quiz.options_per_question }}</code>,
+    <code>correct_options</code>, optional <code>points</code>. All-or-nothing —
+    an invalid file changes nothing.
+  </p>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="field">
+      {{ form.file }}
+      {% if form.file.errors %}<ul class="errorlist">{% for e in form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <button type="submit">Upload &amp; ingest</button>
+  </form>
+
+  {% if result and not result.ok %}
+  <h2>The file was rejected — nothing was saved</h2>
+  {% if result.header_errors %}
+  <h3>Header</h3>
+  <ul class="errorlist">{% for e in result.header_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if result.file_errors %}
+  <h3>File</h3>
+  <ul class="errorlist">{% for e in result.file_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if result.row_errors %}
+  <h3>Rows</h3>
+  <table>
+    <thead><tr><th>Row</th><th>Problems</th></tr></thead>
+    <tbody>
+      {% for re in result.row_errors %}
+      <tr>
+        <td>{{ re.row }}</td>
+        <td><ul class="errorlist">{% for reason in re.reasons %}<li>{{ reason }}</li>{% endfor %}</ul></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% endif %}
+{% endblock %}

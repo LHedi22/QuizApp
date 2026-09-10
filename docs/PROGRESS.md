@@ -978,7 +978,7 @@ parallel track. Its "results list" DoD item (R6.1) depends on submissions, which
 come from the scan pipeline (Phases 5–7) — **user approved 2026-09-10** building
 it now and e2e-testing it against hand-built `Submission` fixtures; the real
 pipeline wiring is revisited when Phase 7 lands. Subtask plan:
-`docs/phases/phase-8.md`. Commit `<plan>`.
+`docs/phases/phase-8.md`. Plan commit `1260f7c`.
 
 **Environment:** Docker Desktop is healthy again this session. Postgres via
 `docker run -d -p 127.0.0.1:5433:5432 -e POSTGRES_PASSWORD=dev --name qs-pg8
@@ -1022,5 +1022,33 @@ was later removed/renamed — 259 is the true Phase 1–5.1 count on Postgres).
   PROTECT). "Mark printed" is still Phase 9; nothing here sets `printed_at`.
 - 8.2 adds `quizzes/<pk>/upload`; 8.3 `.../versions/generate`; 8.4
   `versions/<pk>/<kind>.pdf`; 8.5 `.../results`. All extend `quiz_detail.html`.
+
+**Commit:** a091449
+
+## phase-8.2 — Question upload UI (xlsx ingest)   (2026-09-10)
+
+**Done:**
+- `app/web/forms.py` `QuestionUploadForm` — single `FileField`, rejects
+  non-`.xlsx` names; the real validation is `ingest.ingest_quiz`.
+- `app/web/quiz_views.py` `quiz_upload` — `get_owned_or_404`, reads the upload
+  into `BytesIO`, calls `ingest_quiz`:
+  - `result.ok` → success message with the count, redirect to detail;
+  - not ok → re-render `web/quiz_upload.html` with `header_errors` /
+    `file_errors` / a `row_errors` table (row number + every reason), **HTTP 200**;
+  - `IngestBlocked` → error message, redirect to detail (R1.5).
+- Route `quizzes/<pk>/upload` (name `quiz_upload`); link on `quiz_detail.html`
+  shown only while `can_edit` (draft).
+- `tests/test_web_ingest.py` — 5 tests: valid xlsx ingests in file order;
+  a 3-bad-row file lists every row + every reason and writes 0 questions;
+  re-upload while draft replaces; upload to a versioned quiz → redirect, 0
+  written; foreign quiz pk → 404.
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_web_ingest.py -q` → `5 passed`
+- `pytest -q` → **`277 passed`**; `ruff check .` clean
+
+**Notes / affects later phases:**
+- `ingest_quiz` accepts `BytesIO`; `SimpleUploadedFile` bytes round-trip fine.
+- Row-error rows render as `<td>{{ re.row }}</td>` — the test greps that markup.
 
 **Commit:** <pending>

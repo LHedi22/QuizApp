@@ -4,6 +4,8 @@ access through `get_owned_or_404` so a foreign id 404s, never 403 (R0.2/R0.3).
 
 from __future__ import annotations
 
+from io import BytesIO
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
@@ -11,8 +13,9 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from app.core.access import get_owned_or_404
+from app.core.ingest import IngestBlocked, ingest_quiz
 from app.core.models import Quiz
-from app.web.forms import QuizConfigForm, QuizCreateForm
+from app.web.forms import QuestionUploadForm, QuizConfigForm, QuizCreateForm
 
 
 @login_required
@@ -48,6 +51,35 @@ def quiz_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "versions": quiz.versions.all(),
             "can_edit": quiz.status == Quiz.Status.DRAFT,
         },
+    )
+
+
+@login_required
+def quiz_upload(request: HttpRequest, pk: int) -> HttpResponse:
+    """Ingest a `.xlsx` of questions (R1.2/R1.3). Renders every header + row error;
+    never a 500. Blocked once the quiz has left `draft` (R1.5).
+    """
+    quiz = get_owned_or_404(Quiz, pk, request.user)
+    form = QuestionUploadForm(request.POST or None, request.FILES or None)
+    result = None
+    if request.method == "POST" and form.is_valid():
+        upload = form.cleaned_data["file"]
+        try:
+            result = ingest_quiz(quiz, BytesIO(upload.read()))
+        except IngestBlocked as exc:
+            messages.error(request, str(exc))
+            return redirect("quiz_detail", pk=quiz.pk)
+        if result.ok:
+            messages.success(
+                request,
+                f"{len(result.questions)} question(s) ingested — the previous set "
+                "was replaced.",
+            )
+            return redirect("quiz_detail", pk=quiz.pk)
+    return render(
+        request,
+        "web/quiz_upload.html",
+        {"quiz": quiz, "form": form, "result": result},
     )
 
 

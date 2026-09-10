@@ -21,6 +21,7 @@
   {% endif %}
 
   <h2>Questions ({{ questions|length }})</h2>
+  {% if can_edit %}<p><a href="{% url 'quiz_upload' quiz.pk %}">Upload / replace questions (.xlsx)</a></p>{% endif %}
   {% if questions %}
   <ol>
     {% for q in questions %}<li>{{ q.text|truncatechars:90 }} <span class="muted">[{{ q.correct_options|join:"," }}]</span></li>{% endfor %}
