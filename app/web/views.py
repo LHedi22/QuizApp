@@ -1,5 +1,4 @@
 from django.contrib.auth import login
-from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 
@@ -21,8 +20,3 @@ def register(request: HttpRequest) -> HttpResponse:
         login(request, user)
         return redirect("dashboard")
     return render(request, "web/register.html", {"form": form})
-
-
-@login_required
-def dashboard(request: HttpRequest) -> HttpResponse:
-    return render(request, "web/dashboard.html")

@@ -967,3 +967,60 @@ the R5.2 detect-and-correct-vs-clean-fail decision. 5.1 uses provisional constan
 its tests assert behaviour *relative to* the gate, not the gate's value.
 
 **Commit:** b9f6ef3
+
+---
+
+# ===== PHASE 8 — Dashboard + ingestion UI  (STARTED 2026-09-10) =====
+
+**Out-of-order note.** Phases 5.2–7 are still blocked on the Phase 0.7 corpus.
+Phase 8 (the professor web UI) is corpus-independent and was authorised as the
+parallel track. Its "results list" DoD item (R6.1) depends on submissions, which
+come from the scan pipeline (Phases 5–7) — **user approved 2026-09-10** building
+it now and e2e-testing it against hand-built `Submission` fixtures; the real
+pipeline wiring is revisited when Phase 7 lands. Subtask plan:
+`docs/phases/phase-8.md`. Commit `<plan>`.
+
+**Environment:** Docker Desktop is healthy again this session. Postgres via
+`docker run -d -p 127.0.0.1:5433:5432 -e POSTGRES_PASSWORD=dev --name qs-pg8
+postgres:16`; `DATABASE_URL=postgres://postgres:dev@127.0.0.1:5433/<db>`.
+Baseline before Phase 8: **259 passed** (the memory's "260" counted a test that
+was later removed/renamed — 259 is the true Phase 1–5.1 count on Postgres).
+
+## phase-8.1 — Quiz CRUD   (2026-09-10)
+
+**Done:**
+- `app/web/forms.py`: `QuizCreateForm` (delegates to `services.create_quiz`;
+  `options_per_question` is a 2–6 `TypedChoiceField`), `QuizConfigForm`
+  (`ModelForm` on `title` / `marking_mode` / `negative_marking` / `default_points`
+  — **no `N`**, since changing it would invalidate ingested option counts).
+- `app/web/quiz_views.py`: `quiz_list` (owner-scoped, `-created_at`, annotated
+  question/version counts), `quiz_create`, `quiz_detail`, `quiz_edit` (draft-only),
+  `quiz_delete` (draft-only, POST). Every view `@login_required` +
+  `get_owned_or_404` → foreign/missing pk 404s.
+- `app/web/urls.py`: root renamed view → `quiz_list` but **URL name kept as
+  `dashboard`** (settings `LOGIN_REDIRECT_URL`, `views.register`, `test_auth_flow`
+  all still resolve). New routes `quizzes/new`, `quizzes/<pk>/`,
+  `quizzes/<pk>/edit`, `quizzes/<pk>/delete`.
+- `app/web/views.py`: dropped the old `dashboard` placeholder view.
+- Templates: `base.html` gains a nav bar + `messages` block + minimal inline CSS;
+  new `web/quiz_list.html`, `web/quiz_form.html`, `web/quiz_detail.html`,
+  `web/quiz_confirm_delete.html`; removed the `web/dashboard.html` stub.
+- `tests/test_web_quiz_crud.py` — 13 tests (create valid → draft + redirect;
+  5 invalid-field cases write nothing; owner-scoped list; foreign/missing pk 404
+  on detail/edit/delete ×2; config edit persists + `N` untouched; edit blocked
+  when versioned; delete draft then blocked when printed).
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_web_quiz_crud.py tests/test_auth_flow.py -q` → `27 passed`
+- `pytest -q` (full suite) → **`272 passed`** (259 + 13)
+- `ruff check .` → `All checks passed!`
+- `manage.py check` → 0 issues; `makemigrations --check --dry-run` → No changes
+
+**Notes / affects later phases:**
+- URL name `dashboard` == the quiz list. 8.6 nav already points there.
+- Delete is draft-only (versions are irreplaceable, `Submission.version` is
+  PROTECT). "Mark printed" is still Phase 9; nothing here sets `printed_at`.
+- 8.2 adds `quizzes/<pk>/upload`; 8.3 `.../versions/generate`; 8.4
+  `versions/<pk>/<kind>.pdf`; 8.5 `.../results`. All extend `quiz_detail.html`.
+
+**Commit:** <pending>

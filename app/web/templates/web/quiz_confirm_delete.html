@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ quiz.title }}{% endblock %}
+{% block content %}
+  <h1>Delete quiz “{{ quiz.title }}”?</h1>
+  <p>This permanently removes the quiz and its {{ quiz.questions.count }} question(s).
+     This cannot be undone.</p>
+  <form method="post" action="{% url 'quiz_delete' quiz.pk %}">
+    {% csrf_token %}
+    <button type="submit">Delete permanently</button>
+    <a href="{% url 'quiz_detail' quiz.pk %}">Cancel</a>
+  </form>
+{% endblock %}

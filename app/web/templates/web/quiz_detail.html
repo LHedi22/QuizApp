@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ quiz.title }}{% endblock %}
+{% block content %}
+  <p class="muted"><a href="{% url 'dashboard' %}">&larr; Quizzes</a></p>
+  <h1>{{ quiz.title }} <span class="badge">{{ quiz.get_status_display }}</span></h1>
+
+  <h2>Configuration</h2>
+  <table>
+    <tr><th>Options per question</th><td>{{ quiz.options_per_question }}</td></tr>
+    <tr><th>Marking mode</th><td>{{ quiz.get_marking_mode_display }}</td></tr>
+    <tr><th>Negative marking</th><td>{{ quiz.negative_marking|yesno }}</td></tr>
+    <tr><th>Default points</th><td>{{ quiz.default_points }}</td></tr>
+  </table>
+  {% if can_edit %}
+    <p>
+      <a href="{% url 'quiz_edit' quiz.pk %}">Edit configuration</a> ·
+      <a href="{% url 'quiz_delete' quiz.pk %}">Delete quiz</a>
+    </p>
+  {% else %}
+    <p class="muted">Configuration is frozen — versions exist.</p>
+  {% endif %}
+
+  <h2>Questions ({{ questions|length }})</h2>
+  {% if questions %}
+  <ol>
+    {% for q in questions %}<li>{{ q.text|truncatechars:90 }} <span class="muted">[{{ q.correct_options|join:"," }}]</span></li>{% endfor %}
+  </ol>
+  {% else %}
+  <p class="muted">No questions ingested yet.</p>
+  {% endif %}
+
+  <h2>Versions ({{ versions|length }})</h2>
+  {% if versions %}
+  <table>
+    <thead><tr><th>#</th><th>QR id</th><th>Template</th><th></th></tr></thead>
+    <tbody>
+      {% for v in versions %}
+      <tr>
+        <td>{{ v.version_number }}</td>
+        <td class="muted">{{ v.qr_id }}</td>
+        <td>{{ v.template_version }}</td>
+        <td>{% if v.anticluster_fallback %}<span class="badge">anti-cluster fallback</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No versions generated yet.</p>
+  {% endif %}
+{% endblock %}

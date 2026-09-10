@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == "create" %}New quiz{% else %}Edit {{ quiz.title }}{% endif %}{% endblock %}
+{% block content %}
+  <h1>{% if mode == "create" %}New quiz{% else %}Edit quiz configuration{% endif %}</h1>
+  {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
+      {{ field }}
+      {% if field.help_text %}<div class="muted">{{ field.help_text }}</div>{% endif %}
+      {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    {% endfor %}
+    <button type="submit">{% if mode == "create" %}Create{% else %}Save{% endif %}</button>
+    {% if mode == "edit" %}<a href="{% url 'quiz_detail' quiz.pk %}">Cancel</a>{% else %}<a href="{% url 'dashboard' %}">Cancel</a>{% endif %}
+  </form>
+{% endblock %}

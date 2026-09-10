@@ -1,10 +1,10 @@
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 
-from app.web import views
+from app.web import quiz_views, views
 
 urlpatterns = [
-    path("", views.dashboard, name="dashboard"),
+    path("", quiz_views.quiz_list, name="dashboard"),
     path("healthz", views.healthz, name="healthz"),
     path(
         "accounts/login/",
@@ -14,4 +14,9 @@ urlpatterns = [
     path("accounts/logout/", LogoutView.as_view(), name="logout"),
     path("accounts/register/", views.register, name="register"),
     # No password-reset routes. Recovery is via Django admin (§2 R0.1 / §6 Q13a).
+    # --- Quizzes (Phase 8.1) ---
+    path("quizzes/new", quiz_views.quiz_create, name="quiz_create"),
+    path("quizzes/<int:pk>/", quiz_views.quiz_detail, name="quiz_detail"),
+    path("quizzes/<int:pk>/edit", quiz_views.quiz_edit, name="quiz_edit"),
+    path("quizzes/<int:pk>/delete", quiz_views.quiz_delete, name="quiz_delete"),
 ]

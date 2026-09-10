@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Quizzes{% endblock %}
+{% block content %}
+  <h1>Quizzes</h1>
+  <p><a href="{% url 'quiz_create' %}">+ New quiz</a></p>
+  {% if quizzes %}
+  <table>
+    <thead>
+      <tr><th>Title</th><th>N</th><th>Status</th><th>Questions</th><th>Versions</th><th>Created</th></tr>
+    </thead>
+    <tbody>
+      {% for quiz in quizzes %}
+      <tr>
+        <td><a href="{% url 'quiz_detail' quiz.pk %}">{{ quiz.title }}</a></td>
+        <td>{{ quiz.options_per_question }}</td>
+        <td>{{ quiz.get_status_display }}</td>
+        <td>{{ quiz.num_questions }}</td>
+        <td>{{ quiz.num_versions }}</td>
+        <td class="muted">{{ quiz.created_at|date:"Y-m-d H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No quizzes yet.</p>
+  {% endif %}
+{% endblock %}
