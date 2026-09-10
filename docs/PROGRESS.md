@@ -1453,3 +1453,30 @@ No stop-and-ask triggers (ops scripts / compose / CI / docs only).
   `restore.sh` fail at `pg_restore` (exit nonzero) — never a false "verified".
 
 **Commit:** 8c02d6c
+
+## phase-12.4 — One-command bring-up + in-container checks   (2026-09-10)
+
+**Done:** No compose / Dockerfile change needed. `deploy/.env` local copy uses
+`APP_PORT=8010`, `PG_PORT=5434` (5432/5433 taken on this box). `.env.example`
+`BACKUP_DIR` added in 12.2.
+
+**DoD proof (clean slate — `down -v` first):**
+- `docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build`
+  → `quizscan-postgres-1` healthy → `quizscan-app-1` healthy → `quizscan-worker-1`
+  started; `logs worker` ends `Q Cluster … running.` (no traceback).
+- `curl -fsS http://localhost:8010/healthz` → `{"status": "ok"}` **HTTP 200**.
+- `curl http://localhost:8010/static/web/app.css` → **200**, `text/css`, 1013 B —
+  WhiteNoise serving collected static under `DEBUG=0` (the `collectstatic` step
+  is now non-`|| true`, Phase 8.6).
+- `compose exec app python manage.py migrate --check` → **exit 0**.
+- `compose exec app python -c "from app.sheet_template import load_template;
+  print(load_template())"` → prints the **v2** `SheetTemplate` (fiducial /
+  timing_mark / qr / grid geometry) — **the still-owed in-container Phase 1.4
+  loader check, now cleared**.
+- `compose … down -v` → network + `pgdata` + `blobstore` volumes removed, exit 0.
+
+**Notes:** clears both remaining compose-path items from the Docker-wedged
+sessions — `docker compose up --build` (with WhiteNoise collectstatic) and the
+in-container 1.4 check are now verified.
+
+**Commit:** <pending>
