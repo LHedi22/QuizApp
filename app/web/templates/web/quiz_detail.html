@@ -43,13 +43,17 @@
   {% endif %}
   {% if versions %}
   <table>
-    <thead><tr><th>#</th><th>QR id</th><th>Template</th><th></th></tr></thead>
+    <thead><tr><th>#</th><th>QR id</th><th>Template</th><th>PDFs</th><th></th></tr></thead>
     <tbody>
       {% for v in versions %}
       <tr>
         <td>{{ v.version_number }}</td>
         <td class="muted">{{ v.qr_id }}</td>
         <td>{{ v.template_version }}</td>
+        <td>
+          <a href="{% url 'version_pdf' v.pk 'answer_sheet' %}">answer sheet</a> ·
+          <a href="{% url 'version_pdf' v.pk 'question_paper' %}">question paper</a>
+        </td>
         <td>{% if v.anticluster_fallback %}<span class="badge">anti-cluster fallback</span>{% endif %}</td>
       </tr>
       {% endfor %}

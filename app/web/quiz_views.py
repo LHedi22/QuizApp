@@ -9,14 +9,16 @@ from io import BytesIO
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from app.core.access import get_owned_or_404
+from app.core.blob_storage import get_blob_storage
 from app.core.ingest import IngestBlocked, ingest_quiz
-from app.core.models import Quiz
+from app.core.models import Quiz, Version
 from app.core.versioning_service import VersionGenerationBlocked, generate_versions_for_quiz
 from app.grading.versioning import InfeasibleVersionCount
+from app.pdf.artifacts import render_and_store_version_pdfs
 from app.web.forms import (
     QuestionUploadForm,
     QuizConfigForm,
@@ -86,6 +88,25 @@ def version_generate(request: HttpRequest, pk: int) -> HttpResponse:
 
     messages.success(request, f"{len(versions)} version(s) generated.")
     return redirect("quiz_detail", pk=quiz.pk)
+
+
+_PDF_KINDS = ("answer_sheet", "question_paper")
+
+
+@login_required
+def version_pdf(request: HttpRequest, pk: int, kind: str) -> HttpResponse:
+    """Stream a version's answer sheet / question paper from the deterministic
+    blob cache (R3.1, R3.4)."""
+    if kind not in _PDF_KINDS:
+        raise Http404("unknown PDF kind")
+    version = get_owned_or_404(Version, pk, request.user)
+    paths = render_and_store_version_pdfs(version)
+    data = get_blob_storage().read(paths[kind])
+    response = HttpResponse(data, content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="quiz{version.quiz_id}_v{version.version_number}_{kind}.pdf"'
+    )
+    return response
 
 
 @login_required

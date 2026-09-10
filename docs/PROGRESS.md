@@ -1078,4 +1078,25 @@ was later removed/renamed — 259 is the true Phase 1–5.1 count on Postgres).
 choice — realistic `M ≤ 20` is fast; Django-Q2 offload is a Phase 7/11 concern
 for the batch scan path).
 
-**Commit:** aff699b
+**Commit:** 785b026
+
+## phase-8.4 — Version PDF download   (2026-09-10)
+
+**Done:**
+- `app/web/quiz_views.py` `version_pdf(request, pk, kind)` — `kind ∈
+  {answer_sheet, question_paper}` else `Http404`; `get_owned_or_404(Version)`;
+  `render_and_store_version_pdfs(version)` then streams
+  `get_blob_storage().read(paths[kind])` as `application/pdf` with a
+  `Content-Disposition: attachment` filename.
+- Route `versions/<int:pk>/<str:kind>.pdf` (name `version_pdf`); per-version
+  answer-sheet / question-paper links on `quiz_detail.html`.
+- `tests/test_web_pdf_download.py` — 6 tests (`override_settings(MEDIA_ROOT=
+  tmp_path)`): each kind → 200 + `application/pdf` + `%PDF-` + attachment;
+  re-download byte-identical (R3.4); unknown kind → 404; foreign/missing version
+  → 404; unauthenticated → redirect to login.
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_web_pdf_download.py -q` → `6 passed`
+- `pytest -q` → **`290 passed`**; `ruff check .` clean
+
+**Commit:** <pending>
