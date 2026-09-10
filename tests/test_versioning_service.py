@@ -41,7 +41,7 @@ def test_generates_m_versions_flips_status_and_freezes_questions(professor, make
 
     assert [v.version_number for v in versions] == [1, 2, 3, 4, 5]
     assert len({v.qr_id for v in versions}) == 5
-    assert all(v.template_version == 1 for v in versions)
+    assert all(v.template_version == 2 for v in versions)  # sheet_template.json is v2
     assert {tuple(v.question_order) for v in versions}.__len__() == 5  # distinct (R2.2)
 
     quiz.refresh_from_db()

@@ -1,6 +1,6 @@
 {
-  "template_version": 1,
-  "_comment": "Shared sheet geometry (REBUILD_SPEC 3.2A). v1 = numbers only; the bubble grid / fiducial / timing-mark coordinates are added in Phase 4 against this same file (which may bump template_version by <=15%). Read by ingestion validation (Phase 2), the PDF renderer (Phase 4), and the OMR pipeline (Phase 5/6). Loader: app/sheet_template.py.",
+  "template_version": 2,
+  "_comment": "Shared sheet geometry (REBUILD_SPEC 3.2A). v2 adds answer_sheet.geometry (fiducials, timing marks, QR box, bubble grid). All mm, top-left origin. Row pitch is COMPUTED per (question count, N) by app/sheet_template.bubble_centres so any allowed quiz fits one page. Read by ingestion validation (Phase 2), the PDF renderer (Phase 4), the OMR pipeline (Phase 5/6). capacity_by_n stays at the R3.2 numbers pending a physical proof-print; a later <=15% tweak would be template_version 3.",
   "page": {
     "size": "A4",
     "width_mm": 210.0,
@@ -14,6 +14,22 @@
     "max_chars_per_option": 92
   },
   "answer_sheet": {
-    "capacity_by_n": { "2": 120, "3": 120, "4": 120, "5": 100, "6": 80 }
+    "capacity_by_n": { "2": 120, "3": 120, "4": 120, "5": 100, "6": 80 },
+    "geometry": {
+      "fiducial": { "size_mm": 7.0, "inset_mm": 10.0 },
+      "timing_mark": { "length_mm": 4.0, "thickness_mm": 1.5 },
+      "qr": { "x_mm": 16.0, "y_mm": 13.0, "size_mm": 24.0 },
+      "grid": {
+        "columns_by_n": { "2": 4, "3": 4, "4": 4, "5": 3, "6": 3 },
+        "top_mm": 46.0,
+        "bottom_mm": 282.0,
+        "min_row_pitch_mm": 6.5,
+        "max_row_pitch_mm": 11.0,
+        "bubble_pitch_mm": 6.0,
+        "bubble_diameter_mm": 3.6,
+        "label_gutter_mm": 9.0,
+        "column_gap_mm": 8.0
+      }
+    }
   }
 }

@@ -757,3 +757,46 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
   Capacity table (120/120/120/100/80) unchanged pending the user's physical
   proof-print (a later ≤15% adjustment would be `template_version: 3`).
 - **Question paper**: ReportLab **Platypus** (no WeasyPrint — native-dep weight).
+
+## phase-4.1 — sheet_template.json v2 + geometry loader + bubble_centres()   (2026-09-10)
+
+**Done (F1, as approved):**
+- `config/sheet_template.json` → **`template_version: 2`**; unchanged `page` /
+  `question_paper` / `answer_sheet.capacity_by_n`; new `answer_sheet.geometry`
+  block (fiducial, timing_mark, qr, grid — the F1 table).
+- `app/sheet_template.py` extended (stays pure):
+  - nested frozen dataclasses `FiducialSpec` / `TimingMarkSpec` / `QrSpec` /
+    `GridSpec` / `SheetGeometry`; `SheetTemplate.geometry`.
+  - `bubble_centres(template, num_questions, n_options) -> {q: [(x_mm,y_mm)] per option}`
+    — column blocks fill top→bottom then left→right; **row pitch computed** to fit
+    one page (`(bottom-top)/(rows-1)`, clamped `[min,max]_row_pitch_mm`); the block
+    row is horizontally centred.
+  - `fits_on_one_page`, `row_pitch_mm`, `OverCapacityError` (raised by
+    `bubble_centres` when `num_questions > capacity_for(N)` or the clamped pitch
+    would drop below `min_row_pitch_mm`).
+  - `_validate_geometry`: columns cover N=2..6; grid band inside the page ordered;
+    `min_row_pitch > bubble_diameter`, `bubble_pitch > bubble_diameter`; fiducials
+    on-page; **and the whole `capacity_by_n` table must fit one page + printable
+    width for its grid** (ties both halves of the config together, like
+    `max_chars_per_option`).
+- Tests updated for v2: `test_sheet_template.py` (+`test_v2_geometry_present`),
+  `test_versioning_service.py` (`template_version == 2`).
+- `tests/test_sheet_geometry.py` — 30 cases: in-bounds for every N × {1,5,40} and
+  every capacity-limit quiz; bubbles non-overlapping (dist ≥ diameter);
+  `OverCapacityError` at capacity+1; bad N / count; deterministic; column fill
+  order; row pitch shrinks as the quiz grows.
+
+**DoD proof (Postgres :15432 via podman):**
+- `pytest -q` → **`224 passed`** (was 189; +35 geometry/template)
+- `ruff check .` clean; purity test green (loader still Django-free)
+
+**Notes / affects later phases:**
+- Versions generated from now on stamp `template_version = 2`. The Phase 1/3 test
+  versions that stamped 1 are historical; nothing re-loads the template for them.
+- 4.2 (answer sheet renderer) draws fiducials at
+  `geometry.fiducial_centres_mm(page_w, page_h)` and bubbles at `bubble_centres`.
+  The OMR pipeline (Phase 5/6) crops from the **same** `bubble_centres` call.
+- `capacity_by_n` numbers still pending a physical proof-print (F1); a needed tweak
+  is `template_version: 3` (≤15%, §3.2A).
+
+**Commit:** _(phase-4: sheet_template v2 geometry + bubble_centres (4.1))_

@@ -12,13 +12,14 @@ from app.sheet_template import (
 )
 
 
-def test_v1_loads_and_is_self_consistent():
+def test_loads_and_is_self_consistent():
     t = load_template()
-    assert t.template_version == 1
+    assert t.template_version == 2
     assert t.page_size == "A4"
     assert (t.page_width_mm, t.page_height_mm) == (210.0, 297.0)
     assert t.margin_mm == 12.0
     assert t.printable_column_width_mm <= t.page_width_mm - 2 * t.margin_mm
+    assert t.geometry.grid.bubble_pitch_mm > t.geometry.grid.bubble_diameter_mm
 
 
 def test_capacity_table_matches_r3_2():
@@ -33,6 +34,13 @@ def test_max_chars_per_option_is_recomputable():
     t = load_template()
     derived = derive_max_chars_per_option(t.printable_column_width_mm, t.option_font_size_pt)
     assert abs(t.max_chars_per_option - derived) <= 1
+
+
+def test_v2_geometry_present():
+    g = load_template().geometry
+    assert set(g.grid.columns_by_n) == {2, 3, 4, 5, 6}
+    assert g.grid.columns_by_n[4] == 4 and g.grid.columns_by_n[6] == 3
+    assert 0 < g.grid.top_mm < g.grid.bottom_mm < 297.0
 
 
 def test_committed_file_is_valid_json_with_expected_shape():
