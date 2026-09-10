@@ -21,5 +21,6 @@ urlpatterns = [
     path("quizzes/<int:pk>/versions/generate", quiz_views.version_generate, name="version_generate"),
     path("quizzes/<int:pk>/edit", quiz_views.quiz_edit, name="quiz_edit"),
     path("quizzes/<int:pk>/delete", quiz_views.quiz_delete, name="quiz_delete"),
+    path("quizzes/<int:pk>/results", quiz_views.quiz_results, name="quiz_results"),
     path("versions/<int:pk>/<str:kind>.pdf", quiz_views.version_pdf, name="version_pdf"),
 ]

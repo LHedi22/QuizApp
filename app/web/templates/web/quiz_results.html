@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Results — {{ quiz.title }}{% endblock %}
+{% block content %}
+  <p class="muted"><a href="{% url 'quiz_detail' quiz.pk %}">&larr; {{ quiz.title }}</a></p>
+  <h1>Results — {{ quiz.title }}</h1>
+
+  <p>
+    Status:
+    <a href="?">all</a>
+    {% for value, label in statuses %}
+      · <a href="?status={{ value }}{% if active_sort %}&sort={{ active_sort }}{% endif %}"
+           {% if active_status == value %}class="badge"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </p>
+
+  {% if rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th><a href="?sort=score{% if active_status %}&status={{ active_status }}{% endif %}">Score ▲</a>
+            /<a href="?sort=-score{% if active_status %}&status={{ active_status }}{% endif %}">▼</a></th>
+        <th><a href="?sort=captured{% if active_status %}&status={{ active_status }}{% endif %}">Captured ▲</a>
+            /<a href="?sort=-captured{% if active_status %}&status={{ active_status }}{% endif %}">▼</a></th>
+        <th>Student</th>
+        <th>Flags</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.sub.get_status_display }}</td>
+        <td>{{ row.sub.total_score|default_if_none:"—" }}</td>
+        <td class="muted">{{ row.sub.created_at|date:"Y-m-d H:i" }}</td>
+        <td>{{ row.student }}</td>
+        <td>{% for f in row.flags %}<span class="badge">{{ f }}</span> {% empty %}<span class="muted">—</span>{% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No submissions{% if active_status %} with this status{% endif %}.</p>
+  {% endif %}
+{% endblock %}

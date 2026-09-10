@@ -8,14 +8,14 @@ from io import BytesIO
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.db.models import Count, F
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from app.core.access import get_owned_or_404
 from app.core.blob_storage import get_blob_storage
 from app.core.ingest import IngestBlocked, ingest_quiz
-from app.core.models import Quiz, Version
+from app.core.models import Quiz, Submission, Version
 from app.core.versioning_service import VersionGenerationBlocked, generate_versions_for_quiz
 from app.grading.versioning import InfeasibleVersionCount
 from app.pdf.artifacts import render_and_store_version_pdfs
@@ -88,6 +88,59 @@ def version_generate(request: HttpRequest, pk: int) -> HttpResponse:
 
     messages.success(request, f"{len(versions)} version(s) generated.")
     return redirect("quiz_detail", pk=quiz.pk)
+
+
+_RESULTS_SORTS = {
+    "captured": [F("created_at").asc()],
+    "-captured": [F("created_at").desc()],
+    "score": [F("total_score").asc(nulls_last=True)],
+    "-score": [F("total_score").desc(nulls_last=True)],
+}
+
+
+@login_required
+def quiz_results(request: HttpRequest, pk: int) -> HttpResponse:
+    """Per-quiz submission list (R6.1): status / score / capture time / assigned
+    student / flag reasons, filterable by status, sortable by score and capture
+    time.
+    """
+    quiz = get_owned_or_404(Quiz, pk, request.user)
+
+    submissions = (
+        Submission.objects.owned_by(request.user)
+        .filter(version__quiz=quiz)
+        .select_related("roster_entry", "version")
+        .prefetch_related("answers")
+    )
+
+    status = request.GET.get("status", "")
+    if status in Submission.Status.values:
+        submissions = submissions.filter(status=status)
+
+    sort = request.GET.get("sort", "-captured")
+    order = _RESULTS_SORTS.get(sort, _RESULTS_SORTS["-captured"])
+    submissions = submissions.order_by(*order, "id")
+
+    rows = []
+    for sub in submissions:
+        if sub.status == Submission.Status.FAILED:
+            flags = [sub.get_failure_reason_display()] if sub.failure_reason else []
+        else:
+            flags = sorted({a.flag_reason for a in sub.answers.all() if a.flagged and a.flag_reason})
+        student = (sub.roster_entry.label if sub.roster_entry_id else sub.student_label) or "—"
+        rows.append({"sub": sub, "student": student, "flags": flags})
+
+    return render(
+        request,
+        "web/quiz_results.html",
+        {
+            "quiz": quiz,
+            "rows": rows,
+            "statuses": Submission.Status.choices,
+            "active_status": status,
+            "active_sort": sort,
+        },
+    )
 
 
 _PDF_KINDS = ("answer_sheet", "question_paper")

@@ -1099,4 +1099,38 @@ for the batch scan path).
 - `pytest tests/test_web_pdf_download.py -q` → `6 passed`
 - `pytest -q` → **`290 passed`**; `ruff check .` clean
 
+**Commit:** 3f7fa54
+
+## phase-8.5 — Results list (R6.1)   (2026-09-10)
+
+**Done:**
+- `app/web/quiz_views.py` `quiz_results(request, pk)` —
+  `Submission.objects.owned_by(user).filter(version__quiz=quiz)`
+  `.select_related("roster_entry","version").prefetch_related("answers")`.
+  - `?status=<Submission.Status>` filter (unknown value → ignored);
+  - `?sort=` ∈ {`captured`,`-captured`,`score`,`-score`}, default `-captured`;
+    score sorts use `F("total_score").asc/desc(nulls_last=True)` + `id` tiebreak;
+  - per row: status, `total_score`, `created_at`, student
+    (`roster_entry.label` → `student_label` → "—"), flags
+    (`get_failure_reason_display()` for FAILED, else the distinct `flag_reason`
+    of that submission's flagged answers).
+- `web/quiz_results.html` — table + status filter links + score/capture sort
+  links. "View results" link on `quiz_detail.html`.
+- Route `quizzes/<pk>/results` (name `quiz_results`).
+- `tests/test_web_results.py` — 6 tests against hand-built `Submission`
+  fixtures (`Submission.objects.filter(pk=…).update(created_at=…)` to set the
+  auto-now-add capture time): all 4 rows, newest capture first by default;
+  `?status=needs_review` filters to 1; `?sort=-score` orders by score desc
+  (failed/NULL last), `?sort=captured` oldest first; roster + `student_label` +
+  flagged-answer reason + failure reason all render; foreign quiz → 404;
+  unauthenticated → login redirect.
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_web_results.py -q` → `6 passed`
+- `pytest -q` → **`296 passed`**; `ruff check .` clean
+
+**Notes:** submissions are fixtures — the scan pipeline (Phases 5–7) doesn't
+exist yet (user-approved 2026-09-10). When Phase 7 lands, the pipeline populates
+these rows; the view needs no change.
+
 **Commit:** <pending>
