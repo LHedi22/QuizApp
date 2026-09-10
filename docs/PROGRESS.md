@@ -1563,4 +1563,4 @@ prints anything.
 photograph/scan/label per `corpus/README.md`, `python scripts/check_corpus.py`
 exits 0, commit. Then Phase 5.2 — stop and ask (rule 9).
 
-**Commit:** <pending>
+**Commit:** 6cec1ab
