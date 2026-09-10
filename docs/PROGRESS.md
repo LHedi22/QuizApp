@@ -900,3 +900,70 @@ Paragraph markup.
   production nothing changes it; the test mutates it to exercise cache-busting.
 
 **Commit:** 37e5d10
+
+---
+
+# PHASE 5 — Alignment on real captures  (STARTED 2026-09-10)
+
+**Rule 9 gate:** the Phase 0.7 real-capture corpus still does not exist (no
+printer). `docs/phases/phase-5.md` splits Phase 5 into **5.1 solver core**
+(corpus-independent linear algebra — buildable now) and **5.2–5.5** (image
+front-end, real noise/threshold calibration, the R5.2 near-180° decision, the
+reliability-budget gate — all BLOCKED on the corpus, do not start).
+
+Session infra note: **both container runtimes are down** — Docker Desktop wedged
+(carried from the last session) and the podman machine now won't boot either
+(`machine did not transition into running state`, survived `wsl --shutdown`).
+No Postgres this session, so the 59 `django_db` tests were not run here; the 200
+non-DB tests are green. New deps installed into `.venv` (`--no-cache-dir`):
+**numpy 2.4.6, opencv-python-headless 5.0.0** — added to `pyproject.toml` core
+deps (spec stack = "OpenCV + pyzbar").
+
+## phase-5.1 — solver core (`app/omr/geometry.py`)   (2026-09-10)
+
+**Done (pure: numpy only, no cv2, no Django — CLAUDE.md rule 7):**
+- Convention: `H` maps **canonical answer-sheet mm → source-image px**.
+- `homography_dlt(src, dst)` — Hartley-normalized DLT + SVD; exact for a true
+  projective map.
+- `apply_homography` / `invert_homography` / `reprojection_error` (per-point px).
+- `HomographyFit` (frozen: `H`, `rms_px`, `max_px`, `n_points`, `n_inliers`,
+  `inlier_mask`).
+- `AlignmentError(reason)` — the R5.3 clean-failure channel, `reason ∈
+  {marks_not_found, fit_quality, ambiguous_orientation}`.
+- `fit_homography_robust(src, dst, *, gate_rms_px, gate_max_px, min_inliers,
+  inlier_thresh_px=None, ransac_iters=200, seed=0)` — seeded-deterministic RANSAC
+  over 4-pt minimal samples → refit DLT on the inlier set → **absolute gate**;
+  raises `AlignmentError('fit_quality')` over-gate / too-few-inliers,
+  `AlignmentError('marks_not_found')` for < 4 correspondences. One all-points
+  fallback fit before giving up (low-noise low-N case).
+- `resolve_page_orientation(detected_quad, canonical_quad, *, asym_canonical,
+  asym_detected, margin_px)` — 4 corners give an exact DLT for *every* rotation, so
+  the QR-corner asymmetry is the only signal; returns 0/90/180/270, raises
+  `ambiguous_orientation` when the best two are within `margin_px` (R5.2
+  clean-specific-failure branch).
+- `project_points_mm` — named wrapper for canonical-mm → image-px.
+- Registration-point strategy documented in `phase-5.md`: **Stage A** (4 fiducials
+  + 3 QR-box corners = 7, version-independent, enough to decode the QR) then
+  **Stage B** (fiducials + per-row/per-column timing ticks, dozens of points,
+  carries the gate + drives bubble crops). No `sheet_template.json` change needed.
+
+**DoD proof:** `pytest tests/test_omr_geometry.py tests/test_purity.py -q` → **16
+passed**; `pytest -m "not django_db" -q` → **200 passed**; `ruff` clean.
+`tests/test_omr_geometry.py` builds a plausible capture homography (rot ≤ ±20°,
+keystone, scale, translation) and checks against analytic ground truth:
+1. DLT exact (rms < 1e-6; grid within 1e-6 px of the true projection);
+2. σ=1.5 px detection noise → recovered grid within 3 px everywhere, rms in-band;
+3. 2 gross outliers in 40 pts → flagged in `inlier_mask`, fit still < 2 px;
+   30/40 random-corrupted → `AlignmentError(fit_quality)`;
+4. 5/7 points → still fits; 3 points → `AlignmentError(marks_not_found)`;
+5. upright → 0°, 180°-relabelled quad → 180°, centre (symmetric) landmark →
+   `AlignmentError(ambiguous_orientation)`;
+6. 8 non-projective correspondences + tight gate → `fit_quality` (never a bad
+   `HomographyFit`) — this is design principle 3 (over-determination) working.
+
+**Explicitly deferred to the corpus (NOT faked):** the numeric gate values
+(`gate_rms_px` / `gate_max_px` / `min_inliers`), the σ real detection produces, and
+the R5.2 detect-and-correct-vs-clean-fail decision. 5.1 uses provisional constants;
+its tests assert behaviour *relative to* the gate, not the gate's value.
+
+**Commit:** _(phase-5: solver core — homography + robust fit + orientation (5.1))_
