@@ -840,4 +840,4 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
 - OMR (Phase 5/6) crops bubbles from the **same** `bubble_centres(...)` call — the
   renderer and pipeline can't disagree.
 
-**Commit:** _(phase-4: answer sheet renderer (4.2))_
+**Commit:** 187e219
