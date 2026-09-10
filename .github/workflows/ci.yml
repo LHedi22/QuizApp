@@ -43,6 +43,19 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: pytest -q
 
+  backup-restore:
+    # R8.2 — seed -> backup -> wipe -> restore -> byte-for-byte compare.
+    # Spins its own postgres:16 via `docker run` (runners have docker).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libzbar0
+      - run: pip install -e .
+      - run: bash scripts/check_backup_restore.sh
+
   migrate-clean-db:
     runs-on: ubuntu-latest
     services:

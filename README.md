@@ -21,3 +21,13 @@ python -m venv .venv
 .venv/Scripts/ruff check .
 .venv/Scripts/python -m pytest -q
 ```
+
+## Run it
+
+```
+cp deploy/.env.example deploy/.env      # then set a real SECRET_KEY
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build
+```
+
+App on `http://localhost:${APP_PORT}` (default 8010). First run, backup/restore,
+wipe-and-reseed, and troubleshooting: **[`deploy/RUNBOOK.md`](deploy/RUNBOOK.md)**.

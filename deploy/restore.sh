@@ -9,6 +9,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+RUNTIME="${CI_RUNTIME:-docker}"
 [ -f deploy/.env ] && set -a && . deploy/.env && set +a
 
 BACKUP_DIR="${BACKUP_DIR:-deploy/backups}"
@@ -48,7 +49,7 @@ fi
 echo "restore <- $SRC   (db=$DB_NAME container=$PG_CONTAINER)"
 
 # --- database ----------------------------------------------------------
-docker exec -i "$PG_CONTAINER" pg_restore --clean --if-exists --no-owner --exit-on-error \
+"$RUNTIME" exec -i "$PG_CONTAINER" pg_restore --clean --if-exists --no-owner --exit-on-error \
   -U "$DB_USER" -d "$DB_NAME" < "${SRC}/db.dump"
 
 # --- blob store ------------------------------------------------------
@@ -57,7 +58,7 @@ if [ -n "$MEDIA_DIR" ]; then
   find "$MEDIA_DIR" -mindepth 1 -delete
   tar xzf "${SRC}/blob.tar.gz" -C "$MEDIA_DIR"
 else
-  docker run --rm -v "${BLOB_VOLUME}:/blob" -v "$(pwd)/${SRC}:/in:ro" \
+  "$RUNTIME" run --rm -v "${BLOB_VOLUME}:/blob" -v "$(pwd)/${SRC}:/in:ro" \
     alpine sh -c 'find /blob -mindepth 1 -delete && tar xzf /in/blob.tar.gz -C /blob'
 fi
 

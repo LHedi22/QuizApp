@@ -10,13 +10,14 @@
 #   bash deploy/backup.sh --pg-container NAME --blob-volume NAME
 #   bash deploy/backup.sh --pg-container NAME --media-dir /path/to/blob   # --local
 #
-# All Postgres access is via `docker exec` into the named container, so no host
+# All Postgres access is via `"$RUNTIME" exec` into the named container, so no host
 # postgresql-client is required. The blob store is read from a named docker
 # volume, or from a host directory with --media-dir.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # --- config (env / deploy/.env overridable) -------------------------------
+RUNTIME="${CI_RUNTIME:-docker}"
 [ -f deploy/.env ] && set -a && . deploy/.env && set +a
 
 BACKUP_DIR="${BACKUP_DIR:-deploy/backups}"
@@ -44,21 +45,21 @@ mkdir -p "$DEST"
 echo "backup -> $DEST"
 
 # --- database ------------------------------------------------------------
-docker exec -i "$PG_CONTAINER" pg_dump -Fc -U "$DB_USER" -d "$DB_NAME" > "${DEST}/db.dump"
+"$RUNTIME" exec -i "$PG_CONTAINER" pg_dump -Fc -U "$DB_USER" -d "$DB_NAME" > "${DEST}/db.dump"
 [ -s "${DEST}/db.dump" ] || { echo "backup.sh: db.dump is empty" >&2; exit 1; }
 
 # --- blob store --------------------------------------------------------
 if [ -n "$MEDIA_DIR" ]; then
   tar czf "${DEST}/blob.tar.gz" -C "$MEDIA_DIR" .
 else
-  docker run --rm -v "${BLOB_VOLUME}:/blob:ro" -v "$(pwd)/${DEST}:/out" \
+  "$RUNTIME" run --rm -v "${BLOB_VOLUME}:/blob:ro" -v "$(pwd)/${DEST}:/out" \
     alpine sh -c 'tar czf /out/blob.tar.gz -C /blob .'
 fi
 [ -s "${DEST}/blob.tar.gz" ] || { echo "backup.sh: blob.tar.gz is empty" >&2; exit 1; }
 
 # --- manifest --------------------------------------------------------
 GIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
-COUNTS="$(docker exec -i "$PG_CONTAINER" psql -tAX -U "$DB_USER" -d "$DB_NAME" -c \
+COUNTS="$("$RUNTIME" exec -i "$PG_CONTAINER" psql -tAX -U "$DB_USER" -d "$DB_NAME" -c \
   "select 'quiz='||count(*) from core_quiz
    union all select 'version='||count(*) from core_version
    union all select 'submission='||count(*) from core_submission" | paste -sd' ' -)"

@@ -49,4 +49,9 @@ DATABASE_URL="$FRESH" "$PYTHON" manage.py migrate
 DATABASE_URL="$FRESH" "$PYTHON" manage.py migrate --check
 
 echo
+echo "== backup / restore round-trip (R8.2) =="
+# its own disposable container + port, independent of this script's postgres
+env -u DATABASE_URL PGPORT=5455 CI_RUNTIME="$RUNTIME" bash scripts/check_backup_restore.sh
+
+echo
 echo "ALL GREEN"

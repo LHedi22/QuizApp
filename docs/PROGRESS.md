@@ -1479,4 +1479,43 @@ No stop-and-ask triggers (ops scripts / compose / CI / docs only).
 sessions — `docker compose up --build` (with WhiteNoise collectstatic) and the
 in-container 1.4 check are now verified.
 
+**Commit:** f606fa1
+
+## phase-12.5 — Ops runbook + CI wiring + phase close   (2026-09-10)
+
+**Done:**
+- `deploy/RUNBOOK.md` — first run (`.env`, SECRET_KEY, `up --build`,
+  `createsuperuser`), everyday (`ps`/`logs`/`restart`, the two named volumes),
+  backup, restore (+ `scripts/check_backup_restore.sh` for the full proof),
+  wipe & reseed (`down -v` → `up` → `scripts/seed_demo.py`), troubleshooting
+  (WinNAT port ranges, worker/migrate race, Docker wedged → `CI_RUNTIME=podman`,
+  `collectstatic`/`STATIC_ROOT`, `changepassword`). Every command was run in
+  Phase 12.
+- `deploy/backup.sh` / `deploy/restore.sh` now honour `CI_RUNTIME`
+  (`RUNTIME="${CI_RUNTIME:-docker}"`) so the podman fallback works end to end.
+- `.github/workflows/ci.yml` — new `backup-restore` job runs
+  `scripts/check_backup_restore.sh` (spins its own `postgres:16` via `docker
+  run`; runners have docker). Jobs: `lint`, `test`, `backup-restore`,
+  `migrate-clean-db`.
+- `scripts/ci.sh` — added a `backup / restore round-trip (R8.2)` step after the
+  clean-DB migration (`env -u DATABASE_URL PGPORT=5455 CI_RUNTIME=$RUNTIME bash
+  scripts/check_backup_restore.sh`).
+- `README.md` — new "Run it" section links `deploy/RUNBOOK.md`.
+- The R8.3 zero-LLM scan (12.1) is plain pytest, so it already runs in the
+  `lint`/`test` jobs and `scripts/ci.sh`.
+
+**DoD proof (default `docker` runtime):**
+- `PGPORT=5434 bash scripts/ci.sh` → ruff + **full pytest** + clean-DB
+  `migrate`/`--check` + **`RESTORE VERIFIED`** → **`ALL GREEN`** (exit 0).
+- `python -c "import yaml; ..."` → `jobs: ['lint', 'test', 'backup-restore',
+  'migrate-clean-db']`.
+- `pytest --co -q` → **335 tests collected** (332 + 3 R8.3 scan).
+- Every fenced command in `deploy/RUNBOOK.md` was executed this phase.
+
 **Commit:** <pending>
+
+**PHASE 12 COMPLETE.** Worked ahead of Phases 5.2–7 / 10 / 11 (corpus- or
+pipeline-blocked) — same rationale as Phases 8–9. R8.1 (clean-DB migrate),
+R8.2 (documented + *tested* backup/restore), R8.3 (CI zero-LLM scan) all met.
+Left for a Phase-7 follow-up: R8.2 exercised with real scan images, a richer
+reseed. F1 physical proof-print remains a user task.

@@ -213,13 +213,18 @@ credentials, work against the compose stack.
 
 ## Phase 12 exit checklist
 
-- [ ] 12.1 zero-LLM source scan (R8.3) — passes, self-tested, catches a planted import
-- [ ] 12.2 `backup.sh` / `restore.sh` — parametrised, no creds, `--yes` gate on restore
-- [ ] 12.3 tested round-trip — seed → backup → wipe → restore → byte-identical (R8.2)
-- [ ] 12.4 `docker compose up` clean-slate → app + static + worker healthy; in-container 1.4 check
-- [ ] 12.5 `deploy/RUNBOOK.md` + CI wiring + README link
-- [ ] `scripts/ci.sh` green with the round-trip; full suite green
-- [ ] `docs/PROGRESS.md` entry per subtask, one commit each
+- [x] 12.1 zero-LLM source scan (R8.3) — passes, self-tested, catches a planted import  (6b159f2)
+- [x] 12.2 `backup.sh` / `restore.sh` — parametrised, no creds, `--yes` gate on restore  (6f97f4b)
+- [x] 12.3 tested round-trip — seed → backup → wipe → restore → byte-identical (R8.2)  (8c02d6c)
+- [x] 12.4 `docker compose up` clean-slate → app + static + worker healthy; in-container 1.4 check  (f606fa1)
+- [x] 12.5 `deploy/RUNBOOK.md` + CI wiring (`backup-restore` job + `scripts/ci.sh` step) + README link
+- [x] `scripts/ci.sh` green with the round-trip; full suite green (335)
+- [x] `docs/PROGRESS.md` entry per subtask, one commit each
+
+**Phase 12 complete** (2026-09-10). Worked ahead of Phases 5.2–7 / 10 / 11 (all
+corpus- or pipeline-blocked). Remaining for a later pass once Phase 7 lands: the
+scan-image half of R8.2 exercised with real scans, and a richer reseed dataset.
+Physical proof-print of `build/proof_*.pdf` (F1) is still a user task.
 
 **Note on order:** Phase 12 is worked ahead of Phases 5.2–7 / 10 / 11, which are
 all blocked on the Phase 0.7 corpus or the scan pipeline. Same sanctioned
