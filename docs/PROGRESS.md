@@ -1360,3 +1360,38 @@ professor re-assigns from the new list.
 **PHASE 9 COMPLETE.** All 6 subtasks done + verified. Built out of §5 order (as
 Phase 8 was) — Phases 5.2–7 remain blocked on the Phase 0.7 corpus. Review UI +
 overrides are fixture-tested pending the Phase 7 pipeline.
+
+---
+
+# ===== PHASE 12 — Packaging + ops  (STARTED 2026-09-10) =====
+
+Worked ahead of Phases 5.2–7 / 10 / 11 (all corpus- or pipeline-blocked) — same
+sanctioned parallel-track rationale as Phases 8–9. Plan: `docs/phases/phase-12.md`.
+No stop-and-ask triggers (ops scripts / compose / CI / docs only).
+
+## phase-12.1 — Zero-LLM source scan (R8.3)   (2026-09-10)
+
+**Done:**
+- `tests/test_no_llm_on_grading_path.py` (plain pytest, no DB — runs in the
+  `lint`/`test` CI jobs and `scripts/ci.sh`):
+  - `scan_source_for_llm(text, path)` — flags LLM imports (`openai`, `anthropic`,
+    `cohere`, `mistralai`, `litellm`, `llama_cpp`, `ollama`, `replicate`,
+    `huggingface_hub`, `google.generativeai`/`google.genai`, `transformers`,
+    `langchain*`), API-key shapes (`sk-…` / `sk-ant-…`), and LLM endpoint hosts
+    (`api.openai.com`, `api.anthropic.com`, `generativelanguage.googleapis.com`,
+    `api.cohere.ai`, `openrouter.ai`).
+  - `_LLM_SCAN_EXEMPT_PREFIXES = ("app/omr/readingsuggester/",)` — the single
+    named §5-Phase-10 carve-out (dir doesn't exist yet; named so it's greppable).
+  - walks `app/**/*.py` + `scripts/**/*.py`; a separate check parses
+    `pyproject.toml` deps (incl. optional groups) for the same package names.
+  - `test_detector_flags_a_planted_import` — the detector itself is asserted to
+    hit `import openai` / an `sk-…` key, and to honour the carve-out.
+
+**DoD proof:**
+- `pytest tests/test_no_llm_on_grading_path.py -q` → `3 passed`; `ruff` clean.
+- **Planted-import check (by hand):** wrote `app/core/_scan_probe.py` containing
+  `import openai` → `test_no_llm_in_app_or_scripts_source` **FAILED** with
+  `{'app/core/_scan_probe.py': ["llm-import: 'import openai'"]}`; removed the
+  file → `3 passed` again.
+
+**Commit:** <pending>
