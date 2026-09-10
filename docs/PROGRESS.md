@@ -799,4 +799,4 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
 - `capacity_by_n` numbers still pending a physical proof-print (F1); a needed tweak
   is `template_version: 3` (≤15%, §3.2A).
 
-**Commit:** _(phase-4: sheet_template v2 geometry + bubble_centres (4.1))_
+**Commit:** dbb1731
