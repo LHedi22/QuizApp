@@ -841,3 +841,62 @@ on the normal `docker` runtime is the real gate — re-run when Docker Desktop i
   renderer and pipeline can't disagree.
 
 **Commit:** 187e219
+
+## phase-4.3 — question paper renderer (R3.1)   (2026-09-10)
+
+**Done:**
+- `app/pdf/question_paper.py` `render_question_paper(version, *, template=None) -> bytes`
+  — ReportLab `BaseDocTemplate` with `invariant=1` (byte-identical). Questions in
+  `version.question_order` order, numbered 1..n; options in
+  `version.option_order[str(qid)]` order, labelled `A) … B) …`; no bubbles; a header
+  line with the version identifier. `paper_rows(version)` helper returns
+  `(number, text, [option texts in sheet order])`.
+- `tests/test_question_paper_render.py` — 4 tests: valid PDF with every source
+  question's text; sheet order (1..n) + options in `option_order` (not canonical)
+  sequence + at least one non-identity option order present; deterministic;
+  question/option counts match the version.
+
+**DoD proof (Postgres :15432 via podman):** `pytest tests/test_question_paper_render.py`
+→ `4 passed`; `ruff` clean.
+
+**Notes:** `app/pdf` may import `app.core.models` (only `/omr` and `/grading` are
+web-framework-free, rule 7). `_escape` guards `&<>` in question text for the
+Paragraph markup.
+
+**Commit:** _(phase-4: question paper renderer (4.3))_
+
+## phase-4.4 — storage interface + deterministic cache + cache-busting (R3.4)   (2026-09-10)
+
+**Done:**
+- `app/core/blob_storage.py` — `BlobStorage` (`exists` / `save` / `read`) over
+  `settings.MEDIA_ROOT` (the Docker `blobstore` volume), relative `/`-separated
+  paths confined to the root (rejects `../` escape). `get_blob_storage()` reads
+  `MEDIA_ROOT` fresh so tests `override_settings`. Swappable for S3/MinIO later
+  (§3.1).
+- `app/pdf/artifacts.py`:
+  - `version_pdf_paths(version)` — deterministic, **`versions/<id>/tpl<template_version>/
+    {answer_sheet,question_paper}.pdf`**; the `tpl<n>` segment is the cache-bust key
+    (§3.3 principle 6).
+  - `render_and_store_version_pdfs(version)` — renders + stores only what's missing
+    for the current `template_version`; a second call reads the cache without
+    re-rendering.
+- `tests/test_pdf_artifacts.py` — 5 tests: first call writes exactly 2 PDFs under
+  `MEDIA_ROOT` and the answer sheet bytes match `render_answer_sheet(...)`; second
+  call re-renders **nothing** (renderers patched + asserted not called); a
+  `template_version` bump → new `tpl3/` path, old `tpl2/` file untouched;
+  `version_pdf_paths` is template-scoped; path-escape rejected.
+
+**DoD proof (Postgres :15432 via podman):**
+- `pytest -q` → **`244 passed`** (235 + 4 question paper + 5 artifacts)
+- `manage.py makemigrations --check` → 0; `manage.py check` → 0; `ruff` clean
+
+**Notes / affects later phases:**
+- Renders are deterministic so the cache is an optimisation, not correctness.
+- Phase 8 UI + a Django-Q2 task (batch generation) call
+  `render_and_store_version_pdfs`; the download view streams
+  `blob_storage.read(path)`.
+- `Version.template_version` is left mutable (not in the immutability guard) — the
+  spec only mandates `question_order`/`option_order`/`qr_id` immutability. In
+  production nothing changes it; the test mutates it to exercise cache-busting.
+
+**Commit:** _(phase-4: storage interface + PDF cache + cache-busting (4.4))_
