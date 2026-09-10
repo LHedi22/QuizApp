@@ -215,12 +215,16 @@ needs a tweak, that's a `template_version` 3 bump (≤15%, §3.2A) — not now.
 
 ## Phase 4 exit checklist
 
-- [x] F1 signed off 2026-09-10 (v2 geometry, template_version 2)
-- [x] 4.1 geometry (commit dbb1731)
-      capacity-limit quiz; `OverCapacityError` at capacity+1; deterministic
-- [x] 4.2 answer sheet (commit 187e219); proof PDFs sent to user
-      fiducials at config positions; N=2..6 fit one page; proof PDF sent to user
-- [x] 4.3 question paper (commit 6378517)
-- [x] 4.4 storage + cache (commit 37e5d10)
-      bump busts it, writes under `MEDIA_ROOT`
-- [x] 244 tests pass, makemigrations --check clean (podman Postgres); scripts/ci.sh on real docker runtime still owed
+- [x] F1 signed off 2026-09-10 (v2 geometry, `template_version: 2`)
+- [x] 4.1 geometry — `bubble_centres` in-bounds + non-overlapping for every
+      capacity-limit quiz; `OverCapacityError` at capacity+1; deterministic  (dbb1731)
+- [x] 4.2 answer sheet — byte-identical; QR decodes after raster+degrade; fiducials
+      at config insets; N=2..6 one page; proof PDFs sent to user  (187e219)
+- [x] 4.3 question paper — shuffled order + options, text matches source, deterministic  (6378517)
+- [x] 4.4 storage + cache — 2 files written, second call cached, `template_version`
+      bump busts it, writes under `MEDIA_ROOT`  (37e5d10)
+- [x] 244 tests pass + `makemigrations --check` clean (podman Postgres)
+
+**Phase 4 complete.** Still owed on the real `docker` runtime: `scripts/ci.sh`
+(default), `docker compose up --build`. The physical **proof-print** of
+`build/proof_*.pdf` is a user task; any ≤15% tweak → `template_version: 3`.
