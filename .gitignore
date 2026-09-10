@@ -6,6 +6,7 @@ deploy/.env
 db.sqlite3
 /media/
 /staticfiles/
+deploy/backups/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/

@@ -1395,3 +1395,61 @@ No stop-and-ask triggers (ops scripts / compose / CI / docs only).
   file → `3 passed` again.
 
 **Commit:** <pending>
+
+## phase-12.2 — Backup + restore scripts (R8.2)   (2026-09-10)
+
+**Done:**
+- `deploy/backup.sh` — `pg_dump -Fc` (custom format) via `docker exec` into the
+  Postgres container (no host `postgresql-client` needed) + a `tar czf` of the
+  blob store (from a named docker volume, or `--media-dir <path>`). Writes
+  `<BACKUP_DIR>/<UTC-ts>/{db.dump, blob.tar.gz, manifest.txt}`; manifest carries
+  git SHA + `quiz`/`version`/`submission` row counts + sizes. `set -euo pipefail`,
+  exits non-zero + empty-file guards.
+- `deploy/restore.sh <ts|dir>` — **refuses without `--yes`** (exit 3);
+  `pg_restore --clean --if-exists --no-owner --exit-on-error` + blob extract;
+  runs `manage.py migrate --check` after (if `DATABASE_URL` set). `--exit-on-error`
+  so a truncated/corrupt dump aborts loudly instead of a partial restore.
+- Flags mirror on both: `--pg-container`, `--blob-volume` | `--media-dir`,
+  `--db-user`, `--db-name`, `--out`.
+- `.gitignore` += `deploy/backups/`; `deploy/.env.example` += `BACKUP_DIR`.
+
+**DoD proof (Postgres :5446–5447 via disposable docker containers):**
+- `bash deploy/backup.sh --out … --pg-container … --media-dir …` → wrote
+  `db.dump` (63 051 B) + `blob.tar.gz` (35 791 B) + `manifest.txt`
+  (`quiz=1 version=3 submission=0`, matching the seed).
+- `bash deploy/restore.sh <ts>` **without `--yes`** → `refusing to overwrite …`,
+  exit 3, nothing changed.
+- Truncated `db.dump` (`head -c 500`) → `restore.sh --yes` → `pg_restore: error:
+  could not read from input file: end of file`, **exit nonzero** (the
+  `--exit-on-error` fix; before it, pg_restore swallowed the EOF and "succeeded").
+- `ruff` clean on the two helper `.py` scripts; `shellcheck` not installed on
+  this box (noted — run in CI or locally when available).
+
+**Commit:** <pending-a>
+
+## phase-12.3 — Tested backup → wipe → restore round-trip (R8.2)   (2026-09-10)
+
+**Done:**
+- `scripts/seed_demo.py` — demo `Professor` (`demo@example.com` /
+  `demo-pass-12345`), a 12-question `Quiz` (ingested from an in-memory xlsx,
+  half single-A / half multi `B,C`), `generate_versions_for_quiz(quiz, 3,
+  seed=12)`, `render_and_store_version_pdfs` for each. Idempotent by email
+  (resets password, replaces quizzes). Prints a summary. Used by the runbook
+  "wipe & reseed" and by 12.3.
+- `scripts/_br_snapshot.py` — stable text dump: quiz count + every version's
+  `qr_id` / `question_order` / `option_order` / `template_version` + the
+  SHA-256 of every stored version PDF.
+- `scripts/check_backup_restore.sh` — self-contained (spins its own
+  `postgres:16`): migrate → `seed_demo` → snapshot **before** → `backup.sh` →
+  **wipe** (`DROP DATABASE … WITH (FORCE)` + recreate + migrate empty; clear the
+  media dir; assert `quiz=0`) → `restore.sh --yes` → snapshot **after** →
+  `diff before after` must be empty → `RESTORE VERIFIED`.
+
+**DoD proof (disposable `postgres:16` on :5445):**
+- `bash scripts/check_backup_restore.sh` → **`RESTORE VERIFIED`** (exit 0): quiz
+  + 3 versions + 6 PDFs restored; every `qr_id`, shuffle map, and PDF SHA-256
+  byte-identical to pre-backup (R2.7 data survives a full wipe).
+- Negative case (12.3 DoD #2): a `head -c 500` truncation of `db.dump` makes
+  `restore.sh` fail at `pg_restore` (exit nonzero) — never a false "verified".
+
+**Commit:** <pending-b>
