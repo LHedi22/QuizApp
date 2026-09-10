@@ -1425,7 +1425,7 @@ No stop-and-ask triggers (ops scripts / compose / CI / docs only).
 - `ruff` clean on the two helper `.py` scripts; `shellcheck` not installed on
   this box (noted — run in CI or locally when available).
 
-**Commit:** <pending-a>
+**Commit:** 6f97f4b
 
 ## phase-12.3 — Tested backup → wipe → restore round-trip (R8.2)   (2026-09-10)
 
@@ -1452,4 +1452,4 @@ No stop-and-ask triggers (ops scripts / compose / CI / docs only).
 - Negative case (12.3 DoD #2): a `head -c 500` truncation of `db.dump` makes
   `restore.sh` fail at `pg_restore` (exit nonzero) — never a false "verified".
 
-**Commit:** <pending-b>
+**Commit:** 8c02d6c
