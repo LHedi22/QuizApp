@@ -1261,4 +1261,24 @@ Plan: `docs/phases/phase-9.md`.
 **Notes:** AuditEvent rows can't be `UPDATE`d (DB trigger `quizscan_block_audit_
 update`) — tests rely on insertion order for `-created_at`, never `.update()`.
 
+**Commit:** 7186599
+
+## phase-9.3 — Override + student-assignment endpoints (R6.3 / R6.4)   (2026-09-10)
+
+**Done:** (endpoints shipped in 9.2's commit; this subtask is their e2e test)
+- `answer_override(request, pk)` POST → `review_service.override_answer` with the
+  `AnswerOverrideForm`-validated letter set; message + redirect to detail.
+- `submission_assign(request, pk)` POST → `review_service.assign_student`;
+  `StudentAssignForm` both/neither → non-field error surfaced as a message,
+  nothing written.
+- `tests/test_web_review_actions.py` — 5 tests: override a wrong answer → row +
+  total + status updated, `Overridden` in history; override on a finalized
+  submission stays finalized; assign by roster then free text → shows in the
+  results list, 2 `assigned` events; both-set / neither-set → rejected, no
+  write, no event; foreign answer / submission pk → 404.
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_web_review_actions.py -q` → `5 passed`
+- `pytest -q` → **`321 passed`**; `ruff check .` clean
+
 **Commit:** <pending>
