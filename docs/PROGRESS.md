@@ -1303,7 +1303,7 @@ update`) — tests rely on insertion order for `-created_at`, never `.update()`.
 submission `roster_entry` pointing at a removed row (FK `SET_NULL`) — the
 professor re-assigns from the new list.
 
-**Commit:** <pending-a>
+**Commit:** 2302405
 
 ## phase-9.5 — CSV export (R6.6)   (2026-09-10)
 
@@ -1322,4 +1322,41 @@ professor re-assigns from the new list.
 
 **DoD proof:** `pytest tests/test_web_results_csv.py -q` → `3 passed`; `ruff` clean.
 
-**Commit:** <pending-b>
+**Commit:** bcfe06d
+
+## phase-9.6 — "Mark printed" control (R3.5) + route sweep + phase close   (2026-09-10)
+
+**Done:**
+- `app/web/review_views.py` `version_mark_printed(request, pk)` (POST) →
+  `review_service.mark_version_printed`; redirect to `quiz_detail`. Route
+  `versions/<pk>/mark-printed` (name `version_mark_printed`).
+- `quiz_detail.html` per-version cell: "mark printed" button, or a
+  `printed <date>` badge once set.
+- `tests/test_web_route_isolation.py` extended to **19** (method, url) pairs —
+  adds `quiz_results_csv`, `quiz_roster`, `submission_detail`,
+  `submission_assign`, `answer_override`, `version_mark_printed`. Both sweeps
+  (unauth → login 302; other-professor id → 404) green.
+- `tests/test_web_printed.py` — 3 tests: mark printed → `printed_at` set +
+  `quiz.status == printed` + `printed` event, and a following `ingest_quiz`
+  raises `IngestBlocked` (R1.5); idempotent (one event); foreign version → 404.
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_web_printed.py tests/test_web_route_isolation.py -q` → `5 passed`
+- `pytest -q` (full suite) → **`332 passed`**
+- `manage.py makemigrations --check --dry-run` → No changes detected
+- `manage.py check` → 0 issues
+- `PGPORT=5434 bash scripts/ci.sh` (default `docker` runtime) → ruff clean +
+  pytest + fresh-DB `migrate` + `migrate --check` → **ALL GREEN** (exit 0)
+
+**Notes / affects later phases:**
+- `scripts/ci.sh` on the real `docker` runtime is now verified green (was owed
+  since the Docker-Desktop-wedged sessions). `docker compose up --build` + the
+  in-container Phase 1.4 loader check are the remaining compose-path items.
+- `version_mark_printed` is a thin wrapper over `mark_version_printed`; the R3.5
+  `quiz.status` flip + R1.5 upload block are exercised end-to-end here.
+
+**Commit:** <pending>
+
+**PHASE 9 COMPLETE.** All 6 subtasks done + verified. Built out of §5 order (as
+Phase 8 was) — Phases 5.2–7 remain blocked on the Phase 0.7 corpus. Review UI +
+overrides are fixture-tested pending the Phase 7 pipeline.

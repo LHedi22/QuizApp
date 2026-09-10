@@ -11,8 +11,13 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 from app.core.access import get_owned_or_404
-from app.core.models import Answer, Question, Quiz, Submission
-from app.core.review_service import assign_student, override_answer, replace_roster
+from app.core.models import Answer, Question, Quiz, Submission, Version
+from app.core.review_service import (
+    assign_student,
+    mark_version_printed,
+    override_answer,
+    replace_roster,
+)
 from app.core.versioning_service import recover_correct_letters
 from app.web.forms import AnswerOverrideForm, RosterPasteForm, StudentAssignForm
 
@@ -120,3 +125,14 @@ def quiz_roster(request: HttpRequest, pk: int) -> HttpResponse:
     else:
         form = RosterPasteForm(initial={"text": _roster_as_text(quiz)})
     return render(request, "web/quiz_roster.html", {"quiz": quiz, "form": form})
+
+
+@login_required
+def version_mark_printed(request: HttpRequest, pk: int) -> HttpResponse:
+    """Mark a version printed (R3.5). The first printed version of a quiz flips
+    `quiz.status → printed`, which blocks question re-upload (R1.5)."""
+    version = get_owned_or_404(Version, pk, request.user)
+    if request.method == "POST":
+        mark_version_printed(version=version, professor=request.user)
+        messages.success(request, f"Version {version.version_number} marked printed.")
+    return redirect("quiz_detail", pk=version.quiz_id)

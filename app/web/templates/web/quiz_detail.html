@@ -58,7 +58,16 @@
           <a href="{% url 'version_pdf' v.pk 'answer_sheet' %}">answer sheet</a> ·
           <a href="{% url 'version_pdf' v.pk 'question_paper' %}">question paper</a>
         </td>
-        <td>{% if v.anticluster_fallback %}<span class="badge">anti-cluster fallback</span>{% endif %}</td>
+        <td>
+          {% if v.anticluster_fallback %}<span class="badge">anti-cluster fallback</span>{% endif %}
+          {% if v.printed_at %}
+            <span class="badge">printed {{ v.printed_at|date:"Y-m-d" }}</span>
+          {% else %}
+            <form class="inline" method="post" action="{% url 'version_mark_printed' v.pk %}">
+              {% csrf_token %}<button type="submit">mark printed</button>
+            </form>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

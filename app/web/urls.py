@@ -29,4 +29,5 @@ urlpatterns = [
     path("submissions/<int:pk>/assign", review_views.submission_assign, name="submission_assign"),
     path("answers/<int:pk>/override", review_views.answer_override, name="answer_override"),
     path("quizzes/<int:pk>/roster", review_views.quiz_roster, name="quiz_roster"),
+    path("versions/<int:pk>/mark-printed", review_views.version_mark_printed, name="version_mark_printed"),
 ]

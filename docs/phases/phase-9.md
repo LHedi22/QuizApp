@@ -234,14 +234,21 @@ Postgres for every subtask. This session: `docker run -d -p 127.0.0.1:5433:5432
 
 ## Phase 9 exit checklist
 
-- [ ] 9.1 review/grading services — override / assign / roster / mark-printed,
-      each audited; pure regrade helpers
-- [ ] 9.2 submission detail — full answer sheet, flagged pinned, audit history,
-      no audit on view
-- [ ] 9.3 override + assignment endpoints — shared scoring path, status
-      re-evaluated
-- [ ] 9.4 roster paste — `name` / `name, external_id`, replace-not-append
-- [ ] 9.5 CSV export — student / version / total / per-question
-- [ ] 9.6 mark-printed + R0.2/R0.3 sweep + full verification
-- [ ] full suite green on Postgres; `scripts/ci.sh` green
-- [ ] `docs/PROGRESS.md` entry per subtask, one commit each
+- [x] 9.1 review/grading services — override / assign / roster / mark-printed,
+      each audited; pure regrade helpers  (e75e6f1)
+- [x] 9.2 submission detail — full answer sheet, flagged pinned, audit history,
+      no audit on view  (7186599)
+- [x] 9.3 override + assignment endpoints — shared scoring path, status
+      re-evaluated  (0094aa9)
+- [x] 9.4 roster paste — `name` / `name, external_id`, replace-not-append  (2302405)
+- [x] 9.5 CSV export — student / version / total / per-question  (bcfe06d)
+- [x] 9.6 mark-printed + R0.2/R0.3 sweep + full verification
+- [x] full suite green on Postgres (332); `scripts/ci.sh` **ALL GREEN** on the
+      default `docker` runtime
+- [x] `docs/PROGRESS.md` entry per subtask, one commit each
+
+**Phase 9 complete** (2026-09-10). No migration added. The review UI + overrides
+are wired to real `Submission` / `Answer` rows but only fixture-populated until
+the Phase 7 scan pipeline exists. `scripts/ci.sh` on the real `docker` runtime is
+now green — the long-standing "owed once Docker healthy" item is cleared;
+`docker compose up --build` + the in-container 1.4 loader check remain.
