@@ -1177,3 +1177,55 @@ built out of §5 order (Phases 5.2–7 still blocked on the Phase 0.7 corpus) as
 sanctioned parallel track; the results list is fixture-tested pending Phase 7.
 
 **Commit:** bb60a98
+
+---
+
+# ===== PHASE 9 — Review UI + audit  (STARTED 2026-09-10) =====
+
+Same out-of-order rationale as Phase 8 (Phases 5.2–7 blocked on the corpus; Phase 9
+is corpus-independent and builds on Phase 8's views). Review UI + overrides are
+e2e-tested against hand-built `Submission`/`Answer` fixtures pending the Phase 7
+pipeline (user-approved 2026-09-10). No new columns; scoring formula untouched.
+Plan: `docs/phases/phase-9.md`.
+
+## phase-9.1 — Review + grading services   (2026-09-10)
+
+**Done:**
+- `app/grading/regrade.py` (pure): `submission_total(scores)` (skips `None`),
+  `status_after_override(current, any_flagged)` — R6.3 local rule
+  (`needs_review` + no flags → `finalized`; `finalized` stays; else unchanged).
+- `app/core/review_service.py`:
+  - `override_answer(*, answer, professor, marked_options)` — recovers the
+    question's sheet-letter key (`recover_correct_letters`), re-scores via
+    `score_question` (R7.5, first prod call site), sets
+    `detected_options/score/correct/manually_edited/edited_at`, clears the flag,
+    recomputes `submission.total_score` + `status`, writes an `overridden`
+    `AuditEvent` (before/after). Atomic.
+  - `assign_student(*, submission, professor, roster_entry=None, label="")` —
+    sets exactly one of roster/free-text, clears the other; `assigned` event.
+  - `parse_roster(text)` — `label` or `label, external_id` per non-blank line;
+    `ValueError` on empty label.
+  - `replace_roster(*, quiz, professor, text)` — parse + replace (not append);
+    `assigned` event with `roster_size`. Removed entries → submissions'
+    `roster_entry` goes NULL (FK `SET_NULL`).
+  - `mark_version_printed(*, version, professor)` — sets `printed_at` if unset,
+    flips `quiz.status → printed` on the first printed version, `printed` event.
+    Idempotent. **Only** path that sets `printed_at` / flips to `printed` (R3.5).
+- `tests/test_review_service.py` — 15 tests (2 pure param sets + DB): override
+  re-score + flag clear + finalize + audit; status held while another flag
+  remains; override on finalized stays finalized; assign roster→free-text (2
+  events); `parse_roster` forms + empty-label reject; `replace_roster` replaces;
+  `mark_version_printed` flips quiz + idempotent + second version.
+
+**DoD proof (Postgres :5433 via docker):**
+- `pytest tests/test_review_service.py tests/test_purity.py -q` → `15 passed`
+  (purity still green — `regrade.py` is numpy/stdlib only)
+- `ruff check .` clean
+
+**Notes / affects later phases:**
+- `override_answer` is the first `score_question` call site in production code;
+  the R7.5 parity assertion still lands in Phase 7 (scan pipeline = other site).
+- `mark_version_printed` does the R3.5 `quiz.status` flip in app logic (no DB
+  trigger) — safe because it's the sole writer of `printed_at`.
+
+**Commit:** <pending>
