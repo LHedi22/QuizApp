@@ -4,6 +4,7 @@ access through `get_owned_or_404` so a foreign id 404s, never 403 (R0.2/R0.3).
 
 from __future__ import annotations
 
+import csv
 from io import BytesIO
 
 from django.contrib import messages
@@ -141,6 +142,41 @@ def quiz_results(request: HttpRequest, pk: int) -> HttpResponse:
             "active_sort": sort,
         },
     )
+
+
+@login_required
+def quiz_results_csv(request: HttpRequest, pk: int) -> HttpResponse:
+    """CSV export of a quiz's results (R6.6): student, version, total, per-question
+    scores in canonical question order."""
+    quiz = get_owned_or_404(Quiz, pk, request.user)
+    n_questions = quiz.questions.count()
+    submissions = (
+        Submission.objects.owned_by(request.user)
+        .filter(version__quiz=quiz)
+        .select_related("roster_entry", "version")
+        .prefetch_related("answers")
+        .order_by("id")
+    )
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="quiz{quiz.pk}_results.csv"'
+    writer = csv.writer(response)
+    writer.writerow(
+        ["student", "version", "total", *(f"q{i}" for i in range(1, n_questions + 1))]
+    )
+    for sub in submissions:
+        student = (sub.roster_entry.label if sub.roster_entry_id else sub.student_label) or ""
+        scores = {a.question_no: a.score for a in sub.answers.all()}
+        row = [
+            student,
+            sub.version.version_number,
+            "" if sub.total_score is None else sub.total_score,
+        ]
+        for i in range(1, n_questions + 1):
+            s = scores.get(i)
+            row.append("" if s is None else s)
+        writer.writerow(row)
+    return response
 
 
 _PDF_KINDS = ("answer_sheet", "question_paper")
