@@ -49,13 +49,11 @@ this corpus. Two things any future session must know before touching 5.2–5.5:
   *known* ground-truth transforms — the corpus never had a role in verifying a
   homography solver. Tested against programmatically generated transforms
   (rotation ≤ ±20°, keystone, scale, framing) with analytic ground truth.
-- **5.2–5.5 — corpus-gated, now UNBLOCKED (not yet started).** The image→points
+- **5.2–5.5 — DONE, see the exit checklist below.** The image→points
   front-end (perimeter detection, adaptive threshold, contour/blob extraction),
   the real noise magnitudes, the actual numeric gate threshold, and every
   accuracy/tolerance number, measured against the corpus above. The near-180°
-  question itself is no longer open — see the bullet above. **Confirm scope with
-  the user before starting** (this is a substantial new phase, not a small
-  follow-on) rather than launching straight into implementation.
+  question itself is no longer open — see the bullet above.
 
 ## What Phase 5 does NOT do
 

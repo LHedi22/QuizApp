@@ -227,11 +227,12 @@ Confirming the Phase 0 assumption: `config/sheet_template.json` at the **repo ro
 - [x] 1.1 data model — `makemigrations --check` clean, `migrate --check` 0,
       introspection + immutability (app + DB trigger) tests pass  (commit a80c354)
 - [x] 1.2 ownership — `owned_by` + `get_owned_or_404` + cross-account test for all 7
-      non-Professor models; **route-level coverage deferred to Phases 8–9**  (e286230)
+      non-Professor models; route-level coverage **closed in Phases 8–9**
+      (`test_web_route_isolation.py`, R0.2/R0.3 sweep)  (e286230)
 - [x] 1.3 auth — register/login/logout e2e; `password_reset` is `NoReverseMatch` + 404
       (commit 6e68631)
 - [x] 1.4 geometry config — `sheet_template.json` v1 loads + validates; capacity table
-      == R3.2; pure loader covered by the purity test  (commit pending)
+      == R3.2; pure loader covered by the purity test  (commit bdbe446)
 - [x] `scripts/ci.sh` green with the new schema (`65 passed`, core 0001+0002 to fresh DB)
 
 **Phase 1 complete** except the R0.2 route-level verification, which by nature lands

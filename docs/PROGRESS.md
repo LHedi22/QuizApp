@@ -2316,3 +2316,54 @@ fresh independent pipeline run — see above.
 live app reflects this.
 
 **Commit:** `e80fb47`
+
+---
+
+# ===== Documentation sweep — fix stale progress markers  (2026-09-11) =====
+
+User asked to update all documentation markdown files with current progress.
+Swept every project `.md` file (excluding `docs/REBUILD_SPEC.md`, left
+unedited per established convention — it's the prescriptive spec, not a
+status doc; `docs/PROGRESS.md` is the authoritative override record) for
+claims that no longer matched reality:
+
+- **`docs/CLAUDE.md`** — "Current state: Nothing has been built yet. Start
+  at Phase 0" was the single most stale line in the repo (dated from before
+  Phase 0 itself). Replaced with an accurate summary: all phases done except
+  Phase 10 (intentionally deferred), pointers to the real evidence.
+- **`docs/phases/phase-0.md`** — 0.7's checklist item was still unchecked
+  and said "DEFERRED by user 2026-09-09"; it was actually completed
+  2026-09-11 (commit `b00405f`). Checked it off with the real resolution
+  story and closed the "Phase 0 is complete only when..." conditional.
+- **`docs/phases/phase-1.md`** — 1.4's commit hash was a literal "(commit
+  pending)" placeholder never backfilled (found: `bdbe446`); 1.2's "route-level
+  coverage deferred to Phases 8–9" is now closed (`test_web_route_isolation.py`).
+- **`docs/phases/phase-5.md`** — the phase-goal narrative still called
+  5.2–5.5 "corpus-gated, now UNBLOCKED (not yet started)" and told a future
+  reader to "confirm scope with the user before starting" — directly
+  contradicting the file's own exit checklist eighty lines below, which
+  already showed all of 5.1–5.5 done. Fixed the narrative to match.
+- **`corpus/README.md`** — the capture gate table and protocol still
+  described the original spec minimums (30/10/5/5) as the live requirement.
+  Rewrote to show the actual, user-relaxed thresholds (20/0/0/0, decided
+  2026-09-11) with the originals kept for reference, and marked capture
+  "done" instead of an open task.
+- **`deploy/RUNBOOK.md`** — "scans once Phase 7 lands" (Phase 7 landed).
+- **`README.md`** — added a one-line status pointer so a first-time reader
+  doesn't have to open `docs/CLAUDE.md` to learn the project isn't mid-build.
+- **`report/diagrams/README.md`** — this predates Phases 5.2–12 shipping;
+  most figures are captioned "DESIGNED... not yet implemented" for work
+  that's since been built and tested. The source `.mmd`/`.tex` files and
+  rendered images were **not** regenerated (out of scope here, needs the
+  mermaid-cli/LaTeX toolchain and the report-visuals workflow), so rewriting
+  the status table alone would create a false "as built" claim the actual
+  images don't back up. Added an explicit staleness disclaimer instead of
+  guessing at new statuses. **Note:** `report/` is untracked by git (was
+  already `??` at session start) — this edit is on disk but not staged;
+  whether to start tracking `report/` is the user's call, not made here.
+
+**No code changed** — this was a documentation-only pass. Spot-checked
+`docs/phases/phase-8.md`, `phase-9.md`, `phase-12.md`, `phase-11.md` and
+`corpus/labels/SCHEMA.md`: all already accurate, no changes needed there.
+
+**Commit:** (recorded after this entry is committed)

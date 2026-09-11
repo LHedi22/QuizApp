@@ -31,21 +31,35 @@ Each `.meta.json` carries its `sheet_token` (= the UUID the QR encodes),
 `questions`, `options`, and the ground-truth `fiducial_centres_mm` /
 `bubble_centres_mm` for Phase 5 alignment scoring.
 
-## What to capture (subtask 0.7 — done by the user)
+## What to capture (subtask 0.7 — done, 2026-09-11)
 
-The gate is `python scripts/check_corpus.py` exiting 0. It requires:
+**Status: complete.** `python scripts/check_corpus.py` exits 0 against the
+20 real phone photos in `corpus/images/`. The thresholds below are as
+**relaxed by the user on 2026-09-11** (see `docs/PROGRESS.md` and
+`docs/phases/phase-0.md` 0.7) — copier/scanner capture, photocopy
+generations, and upside-down/reversed orientation were judged "won't happen
+in real life" for this deployment, so those buckets were dropped to 0 and
+the phone-photo floor lowered to match what was actually captured:
 
-| Bucket | Minimum | Notes |
-|---|---|---|
-| `phone_photo` | **30** | Handheld phone photos, uploaded as-is (not scanned). |
-| `copier_scan` | **10** | Fed through a copier/MFP to image or PDF (split PDF to pages). |
-| `photocopy_generations >= 1` | **5** | Sheets **photocopied 1–2 times before being filled in** (§6 Q10). Not only first-generation laser prints. |
-| `orientation` in `upside_down` / `reversed` | **5** | Captured upside-down or fed into the copier reversed (§6 Q18). Distinct from the ±20° rotation tolerance. |
+| Bucket | Minimum (current) | Spec original | Notes |
+|---|---|---|---|
+| `phone_photo` | **20** | 30 | Handheld phone photos, uploaded as-is (not scanned). |
+| `copier_scan` | **0** | 10 | Dropped — this deployment's sheets are always photographed, never scanned/copied. |
+| `photocopy_generations >= 1` | **0** | 5 | Dropped — sheets are always filled and photographed first-generation. |
+| `orientation` in `upside_down` / `reversed` | **0** | 5 | Dropped from the *corpus testing* requirement only — the aligner's clean-failure behavior on a near-180° sheet (R5.2) is still in scope, just not corpus-verified. |
 
-The 30 + 10 are spec minimums. The 5 + 5 floors are this project's choice for "must
-include" — more is better.
+`docs/REBUILD_SPEC.md` §2 R5.2 / §6 Q10/Q18 are intentionally left
+**unedited** to preserve the original design rationale — `docs/PROGRESS.md`
+is the authoritative record of this override, not this file or the spec
+text. If you're re-capturing for a broader deployment later, the original
+30/10/5/5 minimums above are still the more rigorous target.
 
 ### Capture protocol
+
+*(This is the original, fuller protocol — phone + copier + photocopy +
+upside-down. What was actually captured for this deployment was steps 1, 3,
+4 only: print, fill in, photograph ≥ 20 phone photos. Kept here as the
+target if the corpus is ever broadened.)*
 
 1. **Print** the four `_source/sheet_*.pdf` masters on a laser printer (A4, **100%
    scale**, no "fit to page"). Print several copies of each — you need ~40 filled

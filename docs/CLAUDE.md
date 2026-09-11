@@ -49,4 +49,21 @@ including this session's first action.
 
 ## Current state
 
-Nothing has been built yet. Start at **Phase 0** (scaffold + capture corpus).
+**All of §5's phases are built and verified, except Phase 10 (intentionally
+deferred by the spec's own text).** Phases 0, 1–9, 11, and 12 are each
+complete — see their `docs/phases/phase-N.md` exit checklists and the dated
+entries in `docs/PROGRESS.md` for the DoD proof behind every one. Phase 10
+(the bounded LLM review-queue suggestion aid) stays unbuilt because the spec
+says to build it "only if the Phase 9 review queue proves a real time sink" —
+that hasn't been established by real usage yet.
+
+The app runs via `docker compose` (see `README.md` "Run it" / `deploy/RUNBOOK.md`)
+and has been used end-to-end for real: quiz creation → xlsx ingestion →
+version generation → PDF download → photo scan → OMR grading → review →
+results. `pytest -q` is at 490+ passing tests; `scripts/ci.sh` is green
+(lint, full suite, clean-DB migrate, backup/restore round-trip).
+
+There is no more scripted work left in the phase plan. Further changes at
+this point are either genuine bug/UX fixes surfaced by real use (logged in
+`docs/PROGRESS.md` as dated, non-phase-numbered entries) or new scope the
+user explicitly asks for.

@@ -9,6 +9,10 @@ and shows a results dashboard with a review queue for anything it was unsure abo
 **Working rules:** [`docs/CLAUDE.md`](docs/CLAUDE.md).
 **Phase plan / progress:** [`docs/phases/`](docs/phases/), [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
+**Status:** every phase in the plan is built and verified except Phase 10
+(an optional LLM review-queue aid, intentionally deferred until real usage
+shows it's needed). See `docs/CLAUDE.md` "Current state" for details.
+
 Stack: Django monolith + server-rendered templates, Postgres, classical OpenCV/pyzbar
 OMR (no LLM on the grading path), Django-Q2 background jobs, one `docker-compose`
 (app + postgres) on `localhost`.

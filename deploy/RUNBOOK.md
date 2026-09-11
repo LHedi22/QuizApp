@@ -51,7 +51,8 @@ docker compose … up -d              # start again
 ```
 
 Data lives in two named volumes: **`quizscan_pgdata`** (Postgres) and
-**`quizscan_blobstore`** (the generated PDFs, and scans once Phase 7 lands).
+**`quizscan_blobstore`** (generated PDFs and scanned answer-sheet photos —
+`submissions/<version_id>/<uuid>.jpg`, Phase 7).
 `docker compose … down -v` deletes both — see "Wipe & reseed".
 
 ---

@@ -271,9 +271,8 @@ real file sizes warrant — decide then).
    valid, all thresholds met.
 2. `git log --stat` (or `git lfs ls-files`) shows the corpus committed.
 
-**Phase 0 is complete only when 0.7's DoD passes.** Until then, 0.1–0.6 are committed
-and PROGRESS records that the phase is blocked on the user's capture pass, with the
-checklist above as the hand-off.
+**Phase 0 is complete only when 0.7's DoD passes.** *(Historical note: it now
+has — see the exit checklist below and `docs/PROGRESS.md` 2026-09-11 entries.)*
 
 ---
 
@@ -287,6 +286,15 @@ checklist above as the hand-off.
 - [x] 0.4 Django — `manage.py check` + `migrate --check` clean on Postgres, healthz 200
 - [x] 0.5 compose — `docker compose up` → healthz 200; app + worker + postgres, 127.0.0.1
 - [x] 0.6 CI — `scripts/ci.sh` green; workflow YAML parses
-- [ ] 0.7 real corpus — `check_corpus.py` exits 0; committed
-      **DEFERRED by user 2026-09-09** — Phase 0 stays open. Phases 1–4 proceed without
-      it; Phase 5 does not (CLAUDE.md rule 9). Tracked in PROGRESS.md "KNOWN-PENDING".
+- [x] 0.7 real corpus — `check_corpus.py` exits 0; committed  (commit b00405f)
+      **DONE 2026-09-11.** User captured 20 real phone photos across the 4 corpus
+      master sheets (commits 56ff6a3/910edca), then relaxed the gate thresholds
+      (`min_copier_scan`/`min_photocopied`/`min_reversed` → 0, `min_phone_photo`
+      30 → 20 — commits c149da6/b00405f) since copier/photocopy/upside-down
+      captures "won't happen in real life" for this deployment. R5.2's *behavior*
+      requirement (clean failure on a near-180° sheet) stayed in scope; only the
+      *corpus testing* requirement for it was dropped. `docs/REBUILD_SPEC.md`
+      §2 R5.2 / §6 Q10/Q18 intentionally left unedited — PROGRESS.md is the
+      authoritative override for corpus composition, per `phase_status.md`.
+
+**Phase 0 is complete.**
