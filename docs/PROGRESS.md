@@ -1099,6 +1099,65 @@ call `detect_stage_a` directly for its Stage-A step. The R5.2 near-180° decisio
 is **already made** (see `phase-5.md`'s Rule-9 section) — clean-failure only, no
 detect-and-correct path to build in 5.3.
 
+**Commit:** c6ffcb7
+
+---
+
+## phase-5.3 — two-stage alignment orchestration (`app/omr/alignment.py`)   (2026-09-11)
+
+**Done (pure: `cv2`/`numpy`/`app.omr`/`app.sheet_template`, no Django — rule 7):**
+- **No separate "rectify-then-decode" step**: `align_page` reuses Stage A's
+  (5.2) already-successful `pyzbar` decode of the raw image rather than warping
+  the page and re-decoding — R5.1 step 2 says "decode from the rectified image,"
+  but 5.2 proved raw-image decode is reliable (20/20), so a warp-then-redecode
+  step would add interpolation-blur risk for no measured benefit.
+- **`version_lookup` is injected** (`Callable[[str], VersionGeometry | None]`),
+  not a DB call inside `app/omr` (rule 7) — R5.1 step 3's real `Version.qr_id`
+  lookup belongs to Phase 7; tests use a lookup built from
+  `corpus/_source/*.meta.json`.
+- **`AlignmentError` (in `app.omr.geometry`) gains a 4th reason,
+  `version_not_found`** — a QR that decodes cleanly but isn't a known version,
+  a failure mode the original 3 geometric-fit-only reasons didn't cover.
+- `canonical_stage_b_ticks_mm(template, num_questions, n_options)` — one tick per
+  bubble row (both edges) + one per option column; matches
+  `app/pdf/answer_sheet.py`'s `_draw_timing_marks` exactly (verified: same
+  formula, `m-3`/`W-m+3`/`m-3` tick centres).
+- `detect_stage_b(gray, template, *, fiducial_mm, fiducial_px, stage_a_H, ...)` —
+  reuses Stage A's already-precise fiducial detection (does not re-detect them);
+  for each canonical tick, Stage A's homography predicts an approximate px
+  location, then a **local-window search** (3mm radius, Otsu threshold within
+  just that window, tick-sized-contour-closest-to-prediction) finds and refines
+  it. Raises `AlignmentError('marks_not_found')` if fewer than half the expected
+  ticks are found.
+- `align_page(image, template, *, version_lookup) -> PageAlignment` — Stage A →
+  version lookup → Stage B → final `fit_homography_robust` on the matched Stage-B
+  set. `PageAlignment.H` maps canonical-mm → **source-image** px directly — no
+  page warp is ever materialized; Phase 6 will crop bubbles straight from the
+  original photo via `project_points_mm(H, bubble_mm)`.
+
+**DoD proof:** `pytest tests/test_omr_alignment.py -q` → **43 passed**, including
+for **all 20/20 real corpus photos**:
+1. `align_page` succeeds, `PageAlignment.qr_text`/`num_questions`/`n_options`
+   match the label/source meta exactly;
+2. Stage B matches ≥90% of expected ticks + all 4 fiducials on every photo
+   (during development: **655/655 = 100%** ticks found across the corpus);
+3. `stage_b_fit.rms_px` within the provisional gate (≤12px on 3024x4032 photos);
+4. the final `H` places the canonical bubble-grid centre inside the actual photo
+   frame (degeneracy check);
+5. Stage B's rms is never >2px worse than Stage A's on any photo (confirms the
+   two-stage design earns its complexity — observed rms mostly 1.0-2.1px,
+   occasionally up to ~2.7px, vs. Stage A's 1.3-3.0px on the same photos).
+Plus structural failure-path tests: blank image → `marks_not_found`; unknown QR
+via a lookup returning `None` → `version_not_found`.
+`pytest tests/test_purity.py -q` → `app.omr` still zero-Django.
+`pytest -m "not django_db" -q` → **286 passed** (was 243). `ruff` clean.
+
+**Notes / affects later phases:** 5.4 (bubble-grid rectification) can now call
+`align_page` to get a `PageAlignment` and project `bubble_centres_mm` through its
+`H` for crop boxes. 5.5 (reliability budget) has real per-photo Stage A/B
+diagnostics (`rms_px`, `max_px`, `n_inliers`) already available on every
+`PageAlignment` to build the formal writeup from.
+
 **Commit:** (recorded after this entry is committed)
 
 ---

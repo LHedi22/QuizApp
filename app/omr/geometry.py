@@ -26,7 +26,9 @@ class AlignmentError(Exception):
     worse than a specific failure, so every give-up path raises this with a reason.
     """
 
-    REASONS = frozenset({"marks_not_found", "fit_quality", "ambiguous_orientation"})
+    REASONS = frozenset(
+        {"marks_not_found", "fit_quality", "ambiguous_orientation", "version_not_found"}
+    )
 
     def __init__(self, reason: str, detail: str = "") -> None:
         if reason not in self.REASONS:

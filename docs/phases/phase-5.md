@@ -211,12 +211,87 @@ subtask's 20/20 is a strong real signal but 20 photos, 2 capture sessions, is no
 the full "dozens... indoor lighting variety" corpus R5.2 envisioned — see
 `docs/PROGRESS.md` 2026-09-11 for why the corpus stopped at 20 phone-only images).
 
-## Subtasks 5.3–5.5 — not yet started
+## Subtask 5.3 — Two-stage alignment orchestration (`app/omr/alignment.py`)  ← DONE 2026-09-11
 
-- **5.3 — Two-stage alignment orchestration** (`app/omr/alignment.py`): Stage A →
-  rectify → decode Stage B's version-specific timing marks → `PageAlignment` or
-  `AlignmentError`. The R5.2 near-180° question is **already decided** (see the
-  Rule-9 section above) — clean-failure only, no detect-and-correct path to build.
+**Goal.** Stage A (5.2) → version lookup → Stage B (version-specific timing-mark
+grid) → `PageAlignment`, or a clean `AlignmentError` (R5.3). This is where the
+"coarse then fine" registration strategy (design principle 3) actually pays off:
+Stage A gets close enough to identify the sheet, Stage B refines against dozens of
+timing marks for the precision Phase 6's bubble crops need.
+
+**Design decisions (documented, not silent deviations):**
+- **No separate "rectify-then-decode" step.** R5.1 step 2 says "decodes the QR
+  from the rectified image," but 5.2 already showed `pyzbar` decodes reliably
+  straight from the raw photo (20/20 on the corpus) — `align_page` reuses that
+  decode instead of warping the page and re-decoding, avoiding interpolation-blur
+  risk for no measured benefit.
+- **Version lookup is injected** (`version_lookup: Callable[[str], VersionGeometry
+  | None]`), not looked up from the DB in this module. R5.1 step 3 ("looks up the
+  version") is a real DB read in production, which can't live in `app/omr` (rule
+  7). Phase 7 wires in the real `Version.qr_id` lookup; this module (and its
+  tests) use a lookup built from `corpus/_source/*.meta.json` instead.
+- **`AlignmentError` gained a 4th reason, `version_not_found`** (in
+  `app.omr.geometry`, not duplicated locally) — a QR that decodes cleanly but
+  isn't a known version is a real failure mode the original 3 fit-quality-only
+  reasons didn't cover.
+- **Stage B never re-detects fiducials** — reuses Stage A's already-precise
+  detection, only newly detects the version-specific timing ticks (one per bubble
+  row on both edges + one per option column, `canonical_stage_b_ticks_mm`,
+  matches `_draw_timing_marks` in `app/pdf/answer_sheet.py` exactly). Each tick is
+  found via a **local-window search**: Stage A's homography predicts roughly
+  where a tick should be; a small window (3mm radius) around that prediction is
+  Otsu-thresholded and searched for a plausibly-tick-sized dark blob. **100% (655/655)
+  ticks found across all 20 real corpus photos** during development — Stage A's
+  predictions were consistently accurate to a few px, well inside the search
+  window.
+
+**Deliverables.**
+- `app/omr/alignment.py` (pure: `cv2`, `numpy`, `app.omr.detect`,
+  `app.omr.geometry`, `app.sheet_template` — no Django, rule 7):
+  - `VersionGeometry` (`num_questions`, `n_options`) — the injected lookup's
+    return type.
+  - `PageAlignment` (`H`, `qr_text`, `num_questions`, `n_options`,
+    `stage_a_fit`, `stage_b_fit`) — the phase deliverable. `H` maps
+    canonical-mm → **source-image** px directly; no page warp is ever
+    materialized (Phase 6 crops bubbles straight from the original photo via
+    `project_points_mm(H, bubble_mm)`).
+  - `canonical_stage_b_ticks_mm(template, num_questions, n_options)`.
+  - `detect_stage_b(gray, template, *, ..., stage_a_H) -> (mm, px)` — the matched
+    correspondence set (fiducials + found ticks); raises
+    `AlignmentError('marks_not_found')` if fewer than half the expected ticks are
+    found (not enough signal for a meaningful Stage-B fit).
+  - `align_page(image, template, *, version_lookup) -> PageAlignment` — the full
+    orchestration.
+- `tests/test_omr_alignment.py`: pure/structural tests + real-corpus DoD tests
+  parametrized over all 20 labeled `corpus/images/*.jpg` (rule 9).
+
+**Definition of Done (runnable, against the real corpus).**
+`pytest tests/test_omr_alignment.py -q` — **43/43 pass**, including for all
+**20/20** real corpus photos:
+1. `align_page` succeeds (no `AlignmentError`) and returns a `PageAlignment`
+   whose `qr_text`/`num_questions`/`n_options` match that photo's label/source
+   meta exactly.
+2. Stage B matches at least 90% of the expected timing ticks (plus the 4
+   fiducials) — not just squeaking past the raw gate.
+3. `stage_b_fit.rms_px` is within the provisional gate (`<=12px` on
+   3024x4032-px photos).
+4. The final `H` places the canonical bubble-grid centre sensibly inside the
+   actual photo frame (a coarse degeneracy check).
+5. A separate regression test confirms Stage B's rms is never meaningfully worse
+   than Stage A's on any of the 20 photos (the two-stage design should earn its
+   complexity, not just add it).
+Plus structural failure-path tests (blank image → `marks_not_found`; an unknown
+QR via a lookup returning `None` → `version_not_found`).
+`pytest tests/test_purity.py -q` — `app.omr` still zero-Django.
+`pytest -m "not django_db" -q` → **286 passed** (was 243).
+
+**Explicitly deferred to 5.4/5.5:** actual bubble-crop coordinates (5.4) and the
+formally-written reliability budget (5.5) — this subtask's 20/20 is real signal
+but from a 20-photo, 2-session corpus, not the fuller corpus R5.2 originally
+envisioned (see `docs/PROGRESS.md` 2026-09-11 for why).
+
+## Subtasks 5.4–5.5 — not yet started
+
 - **5.4 — Bubble-grid rectification**: `PageAlignment` + version → per-(question,
   option) crop boxes in the source image, within tolerance across the corpus.
 - **5.5 — Reliability budget gate** (§5 process change 2): measured alignment
@@ -227,7 +302,7 @@ the full "dozens... indoor lighting variety" corpus R5.2 envisioned — see
 
 - [x] 5.1 solver core — test_omr_geometry.py green (16), purity green, 200 non-DB tests pass
 - [x] 5.2 perimeter detection — test_omr_detect.py green (26), 20/20 real corpus photos: fiducials+QR found, QR text matches label, homography fit 8/8 inliers
-- [ ] 5.3 two-stage alignment + R5.2 orientation decision (corpus)
+- [x] 5.3 two-stage alignment — test_omr_alignment.py green (43), 20/20 real corpus photos: PageAlignment correct, Stage B >=90% ticks matched, rms within gate, Stage B not worse than Stage A. R5.2 orientation decision already made (clean-failure only).
 - [ ] 5.4 bubble-grid rectification within tolerance (corpus)
 - [ ] 5.5 reliability budget recorded + accepted (corpus)
 - [ ] `scripts/ci.sh` green
