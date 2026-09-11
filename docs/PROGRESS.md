@@ -25,6 +25,26 @@ Format per entry:
   Phase 4 does not depend on the corpus and is authorised to proceed.
   **Phase 5's DoD requires the real corpus (CLAUDE.md rule 9) — synthetic images may
   NOT be substituted. If Phase 5 is reached before the corpus exists, stop and ask.**
+  **2026-09-11 update:** user captured 20 phone photos of filled Phase-4 answer
+  sheets (5 each of sheet_a/b/c/d) and placed them in `corpus/images/`; all 20 are
+  now labeled in `corpus/labels/` (`capture_type: phone_photo`,
+  `photocopy_generations: 0`, `orientation: upright`, correct `sheet_token` per
+  sheet, per-image lighting/notes — all confirmed by visual inspection of every
+  image). `marked_options` was deliberately left `{}` in every label rather than
+  transcribed from the photos by eye — with up to 40 bubbles/sheet across 20 sheets,
+  hand-transcribing from memory risked writing wrong "ground truth" into files
+  Phase 6 will calibrate against, and `check_corpus.py` does not require
+  `marked_options` completeness (SCHEMA.md: entries only needed for questions you
+  want scored in tests). `python scripts/check_corpus.py` confirms all 20 labels are
+  **structurally valid** (0 per-label errors) but the corpus **still fails the
+  gate**: `phone_photo 20/30, copier_scan 0/10, photocopied 0/5, upside_down/reversed
+  0/5`. User confirmed (2026-09-11): none of the 20 are photocopies; explicitly
+  chose to proceed with phone-only for now rather than add scans/photocopies/
+  upside-down captures immediately. **Phase 0.7 / Phase 5.2 remain BLOCKED** — still
+  need ≥10 more phone photos, ≥10 copier/scanner scans, ≥5 photocopied (1–2
+  generations before filling), ≥5 upside-down or reversed captures, and (ideally)
+  `marked_options` transcribed per sheet (self-reported or a careful verified pass)
+  before this is usable as Phase 6 ground truth.
 
 ---
 

@@ -1,0 +1,10 @@
+{
+  "image": "20260911_131704875_iOS.jpg",
+  "capture_type": "phone_photo",
+  "photocopy_generations": 0,
+  "orientation": "upright",
+  "sheet_token": "1cb73594-d50c-5301-b5ab-1a24e404db29",
+  "lighting": "diffuse indoor light, matte off-white surface, less glare than the earlier batch",
+  "marked_options": {},
+  "notes": "sheet_d_24q_n6, all 24 questions filled with a dark blue pen. Second capture session (~1h after the first batch), different table/lighting. QR code and all 4 fiducial corners visible and unobstructed. marked_options not yet transcribed — needs a careful pass against the physical sheet before use as Phase 6 scoring ground truth."
+}
