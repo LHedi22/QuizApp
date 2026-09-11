@@ -1454,7 +1454,7 @@ orchestrator lives entirely in `app.core`/`app.web` (rule 7 preserved).
 
 **PHASE 7 IS COMPLETE (7.1–7.2, all subtasks done and verified).**
 
-**Commit:** (recorded after this entry is committed)
+**Commit:** `abcd0c5`
 
 ---
 
