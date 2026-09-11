@@ -159,6 +159,26 @@ class QuestionUploadForm(forms.Form):
         return f
 
 
+class SubmissionPhotoUploadForm(forms.Form):
+    """Upload one handheld-phone photo of a filled answer sheet (R4.1a), scanned
+    against a single pre-selected `Version` (Phase 7, 2026-09-11 decision)."""
+
+    image = forms.ImageField(label="Answer sheet photo")
+
+
+class SubmissionBatchUploadForm(forms.Form):
+    """Upload a multi-page PDF scan (R4.1b/R5.4) — each page becomes an
+    independent submission against the pre-selected `Version`."""
+
+    file = forms.FileField(label="Batch PDF (one page per sheet)")
+
+    def clean_file(self):
+        f = self.cleaned_data["file"]
+        if not f.name.lower().endswith(".pdf"):
+            raise forms.ValidationError("Upload a .pdf file.")
+        return f
+
+
 class QuizConfigForm(forms.ModelForm):
     """Edit a quiz's title + grading config. `options_per_question` is deliberately
     not editable — changing N would invalidate already-ingested option counts.

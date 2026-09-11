@@ -56,7 +56,8 @@
         <td>{{ v.template_version }}</td>
         <td>
           <a href="{% url 'version_pdf' v.pk 'answer_sheet' %}">answer sheet</a> ·
-          <a href="{% url 'version_pdf' v.pk 'question_paper' %}">question paper</a>
+          <a href="{% url 'version_pdf' v.pk 'question_paper' %}">question paper</a> ·
+          <a href="{% url 'submission_upload' v.pk %}">scan submissions</a>
         </td>
         <td>
           {% if v.anticluster_fallback %}<span class="badge">anti-cluster fallback</span>{% endif %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Scan submissions — {{ version.quiz.title }} v{{ version.version_number }}{% endblock %}
+{% block content %}
+  <p class="muted"><a href="{% url 'quiz_detail' version.quiz_id %}">&larr; {{ version.quiz.title }}</a></p>
+  <h1>Scan submissions — version {{ version.version_number }}</h1>
+  <p class="muted">
+    Every page is checked against <strong>this version's</strong> printed QR code.
+    A different version's sheet (or an unreadable scan) fails cleanly — it never
+    gets silently scored against the wrong key.
+  </p>
+
+  <h2>One photo</h2>
+  <form method="post" enctype="multipart/form-data" action="{% url 'submission_upload' version.pk %}">
+    {% csrf_token %}
+    <div class="field">
+      {{ photo_form.image }}
+      {% if photo_form.image.errors %}<ul class="errorlist">{% for e in photo_form.image.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <button type="submit">Upload &amp; scan</button>
+  </form>
+
+  <h2>Batch PDF</h2>
+  <p class="muted">One page per sheet. Each page is scored independently — a bad page never fails the rest of the batch.</p>
+  <form method="post" enctype="multipart/form-data" action="{% url 'submission_upload_batch' version.pk %}">
+    {% csrf_token %}
+    <div class="field">
+      {{ batch_form.file }}
+      {% if batch_form.file.errors %}<ul class="errorlist">{% for e in batch_form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <button type="submit">Upload &amp; scan batch</button>
+  </form>
+{% endblock %}

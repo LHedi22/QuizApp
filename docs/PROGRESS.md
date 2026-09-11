@@ -1340,6 +1340,120 @@ reinvented.
 
 **PHASE 6 IS COMPLETE (6.1–6.4, all subtasks done and verified).**
 
+**Commit:** `9bdc142`
+
+---
+
+# ===== PHASE 7 — Scan intake + persistence  (2026-09-11) =====
+
+Subtask plan: `docs/phases/phase-7.md`. Stop-and-ask resolved before starting
+(Appendix A): `Submission.version` is a required, non-nullable FK, so a total
+alignment failure (no QR readable at all) has no way to identify which version
+to attach the failed submission to. **User decision: scope upload to one
+quiz+version at a time** — no schema change. The professor picks a printed
+`Version` first (via the URL); QR decode then only needs to *confirm* that
+choice, not identify it from scratch.
+
+## phase-7.1 — Core orchestrator (`app/core/scan_pipeline.py`)  (2026-09-11)
+
+**Done:**
+- `app/core/scan_pipeline.py`: `process_submission_image(*, version,
+  image_bytes, source, batch_id=None, page_number=None) -> Submission`
+  (`@transaction.atomic`). Saves the raw image via `get_blob_storage()` first
+  (kept even on failure — never silently dropped). Decodes to grayscale, runs
+  `align_page(..., version_lookup=<matches only this version's qr_id>)`. On
+  decode failure or `AlignmentError` → `Submission(status=FAILED,
+  failure_reason=ALIGNMENT_FAILED)`, zero `Answer` rows (R5.7). On success:
+  `classify_page` → per sheet position, resolves the real `Question` via
+  `version.question_order`, `recover_correct_letters` (Phase 3) for the key,
+  `evaluate_question_gate(key_size=len(key))` (Phase 6) for the gate, `Answer`
+  row with `score = score_question(...)` (R7.5 — the *same* function Phase 9's
+  manual overrides use) or `None` while flagged. Submission status:
+  `FINALIZED` iff no answer flagged else `NEEDS_REVIEW`; `total_score`
+  withheld unless finalized (R7.4). `answer_hash` (R5.8): sha256 of the
+  normalized `{question: sorted(detected_options)}` map, stored on every
+  non-failed submission. `AuditEvent(action=SCORED, actor_professor=None)`
+  written (system action, not a professor action).
+- `find_probable_duplicate(submission) -> Submission | None`: query for
+  another submission of the same version with a matching `answer_hash`.
+  **Never auto-sets `duplicate_of`** (Appendix A: professor-confirmed only) —
+  a pure lookup the review UI can surface; confirming it goes through Phase
+  9's existing mutations.
+- `process_batch(*, version, pages, source=BATCH_PDF) -> list[Submission]`
+  (R5.4): each page processed independently under its own
+  `process_submission_image` call sharing one `batch_id`; a bad page never
+  aborts the rest of the batch.
+- `tests/test_scan_pipeline.py` (24 tests). Structural: unreadable bytes and a
+  blank white image both fail cleanly with zero `Answer` rows;
+  `process_batch` continues past a failed page, shares `batch_id`, preserves
+  `page_number` order. **Real-corpus DoD (rule 9):** parametrized over all 20
+  real corpus photos via a `make_corpus_version` fixture that reproduces
+  `scripts/make_corpus_sheets.py`'s actual sequential/unshuffled
+  `question_order`/`option_order` and sets `Version.qr_id` to the real corpus
+  `sheet_token`, so `align_page`'s QR decode resolves to a real DB `Version`.
+  `correct_options` on the fixture questions are **arbitrary** (no real exam
+  behind these practice sheets) — used only to exercise scoring mechanics, not
+  as a new accuracy claim (that's Phase 5/6's). All 20 photos: status is
+  FINALIZED or NEEDS_REVIEW (never FAILED), answer count matches the corpus
+  meta, `answer_hash` non-empty, detected options cross-checked against the
+  (Phase-6-corrected) label with ≤2 mismatches tolerated per sheet, FINALIZED
+  submissions' `total_score` equals the sum of their answer scores, R7.5
+  parity holds (pipeline score == independent `score_question` call) for
+  every non-flagged answer, and a `SCORED` `AuditEvent` exists. A duplicate
+  test re-submits the same real photo twice and confirms matching
+  `answer_hash`, `find_probable_duplicate` finding the first one, and
+  `duplicate_of_id` staying `None` (never auto-set).
+
+**DoD proof:** `pytest -q tests/test_scan_pipeline.py` → **24 passed** against
+the dev Postgres container (`qs-pg-dev`, port 5434). `ruff check .` clean.
+
+## phase-7.2 — Upload UI  (2026-09-11)
+
+**Done:**
+- `app/web/forms.py`: `SubmissionPhotoUploadForm` (`ImageField`) and
+  `SubmissionBatchUploadForm` (`FileField`, `clean_file` rejects non-`.pdf`).
+- `app/web/scan_views.py`: `submission_upload` (single photo) and
+  `submission_upload_batch` (batch PDF rasterized page-by-page via `pymupdf`
+  at 200 DPI). Both `@login_required` + `get_owned_or_404(Version, ...)`
+  (R0.2/R0.3). Single-photo success redirects to `submission_detail`
+  (Phase 9); a `FAILED` submission re-renders the upload page with an inline
+  error message. Batch success redirects to `quiz_results` with an
+  `n_ok`/`n_failed` summary message, since a batch produces many submissions
+  rather than one detail page to land on.
+- `app/web/templates/web/submission_upload.html` (new) + a "scan submissions"
+  link added to each version row in `quiz_detail.html`. Routes registered in
+  `app/web/urls.py`.
+- `tests/test_web_scan_upload.py` (6 tests): upload page renders both forms;
+  a real corpus photo posted through the full HTTP layer redirects to
+  `submission_detail` with a FINALIZED/NEEDS_REVIEW submission; a **valid**
+  but unalignable photo (blank white JPEG — chosen deliberately, since
+  Django's `ImageField` itself rejects genuinely malformed bytes before the
+  view ever runs, so this is the real "valid image, bad content" failure
+  path) stays on the upload page with a "Scan failed" message and a FAILED
+  submission; a one-page PDF built from a real corpus photo posted to the
+  batch endpoint redirects to `quiz_results` and creates exactly one
+  `Submission` with the right `page_number`/`batch_id`; a non-PDF upload is
+  rejected by form validation with zero submissions created; both routes 404
+  for another professor's version (R0.2).
+- **Bug found and fixed in passing** (pre-existing, not new Phase 7 code):
+  `tests/test_web_route_isolation.py` combined `@override_settings(MEDIA_ROOT=
+  None)` with the `settings` fixture on one test — a known pytest-django
+  footgun where the two override mechanisms don't nest cleanly, leaking
+  `MEDIA_ROOT=None` into every later test in the same full-suite run. Only
+  surfaced once Phase 7's web tests (which exercise blob storage through the
+  real view) ran after that file alphabetically. Fixed by dropping the
+  redundant decorator — the test body already sets `settings.MEDIA_ROOT =
+  tmp_path` via the fixture.
+- Deduplicated the corpus-loading helper (`load_corpus_cases`) that
+  `test_scan_pipeline.py` and `test_web_scan_upload.py` both need into
+  `tests/conftest.py`.
+
+**DoD proof:** `pytest -q` (full suite, dev Postgres) → **475 passed**.
+`ruff check .` → clean. `app/omr` and `app/grading` untouched by Phase 7 — the
+orchestrator lives entirely in `app.core`/`app.web` (rule 7 preserved).
+
+**PHASE 7 IS COMPLETE (7.1–7.2, all subtasks done and verified).**
+
 **Commit:** (recorded after this entry is committed)
 
 ---

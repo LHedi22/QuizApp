@@ -1,7 +1,7 @@
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 
-from app.web import quiz_views, review_views, views
+from app.web import quiz_views, review_views, scan_views, views
 
 urlpatterns = [
     path("", quiz_views.quiz_list, name="dashboard"),
@@ -30,4 +30,11 @@ urlpatterns = [
     path("answers/<int:pk>/override", review_views.answer_override, name="answer_override"),
     path("quizzes/<int:pk>/roster", review_views.quiz_roster, name="quiz_roster"),
     path("versions/<int:pk>/mark-printed", review_views.version_mark_printed, name="version_mark_printed"),
+    # --- Scan intake (Phase 7) ---
+    path("versions/<int:pk>/submissions/upload", scan_views.submission_upload, name="submission_upload"),
+    path(
+        "versions/<int:pk>/submissions/upload-batch",
+        scan_views.submission_upload_batch,
+        name="submission_upload_batch",
+    ),
 ]

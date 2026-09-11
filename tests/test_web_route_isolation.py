@@ -9,7 +9,6 @@ This closes the route-level R0.2 verification deferred from Phase 1.2.
 from __future__ import annotations
 
 import pytest
-from django.test import override_settings
 from django.urls import reverse
 
 from app.core.models import Answer, Question, Submission
@@ -60,7 +59,6 @@ def _routes(quiz, version, submission, answer):
     ]
 
 
-@override_settings(MEDIA_ROOT=None)
 def test_unauthenticated_is_redirected_to_login(client, owned, tmp_path, settings):
     settings.MEDIA_ROOT = tmp_path
     quiz, version, submission, answer = owned
