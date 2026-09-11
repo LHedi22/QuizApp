@@ -6,9 +6,78 @@
   "sheet_token": "1cb73594-d50c-5301-b5ab-1a24e404db29",
   "lighting": "diffuse indoor light, matte off-white surface, less glare than the earlier batch",
   "marked_options": {
-    "1": ["A"], "2": ["F"], "3": ["C"], "4": ["B"], "5": ["E"], "6": ["D"], "7": ["B"], "8": ["F"],
-    "9": ["E"], "10": ["B"], "11": ["C"], "12": ["D"], "13": ["A"], "14": ["D"], "15": ["F"], "16": ["C"],
-    "17": ["B"], "18": ["D"], "19": ["C"], "20": ["F"], "21": ["A"], "22": ["E"], "23": ["B"], "24": ["D"]
+    "1": [
+      "A"
+    ],
+    "2": [
+      "F"
+    ],
+    "3": [
+      "C"
+    ],
+    "4": [
+      "B"
+    ],
+    "5": [
+      "E"
+    ],
+    "6": [
+      "D"
+    ],
+    "7": [
+      "B"
+    ],
+    "8": [
+      "F"
+    ],
+    "9": [
+      "E"
+    ],
+    "10": [
+      "B"
+    ],
+    "11": [
+      "C"
+    ],
+    "12": [
+      "D"
+    ],
+    "13": [
+      "A"
+    ],
+    "14": [
+      "D"
+    ],
+    "15": [
+      "F"
+    ],
+    "16": [
+      "C"
+    ],
+    "17": [
+      "B"
+    ],
+    "18": [
+      "D"
+    ],
+    "19": [
+      "C"
+    ],
+    "20": [
+      "F"
+    ],
+    "21": [
+      "A"
+    ],
+    "22": [
+      "E"
+    ],
+    "23": [
+      "C"
+    ],
+    "24": [
+      "D"
+    ]
   },
-  "notes": "sheet_d_24q_n6, all 24 questions filled with a dark blue pen. Second capture session (~1h after the first batch), different table/lighting; a pen is visible near the top edge of the frame. QR code and all 4 fiducial corners visible and unobstructed. marked_options transcribed by AI (Claude) visual inspection of the phone photo, not independently verified against the physical sheet — spot-check before relying on it as Phase 6 scoring ground truth."
+  "notes": "sheet_d_24q_n6, all 24 questions filled with a dark blue pen. Second capture session (~1h after the first batch), different table/lighting; a pen is visible near the top edge of the frame. QR code and all 4 fiducial corners visible and unobstructed. marked_options transcribed by AI (Claude) visual inspection of the phone photo, not independently verified against the physical sheet \u2014 spot-check before relying on it as Phase 6 scoring ground truth. CORRECTED 2026-09-11: local-normalized fill-score analysis (Phase 6 classifier calibration) found the originally-transcribed letter scored near-zero fill (empty-looking) while an adjacent letter in the same question scored 0.4-0.9 (clearly filled) -- an unambiguous sign of an off-by-one AI transcription error in the original labeling pass, not classifier ambiguity. Corrected questions: Q23->C."
 }

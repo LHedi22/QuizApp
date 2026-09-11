@@ -1250,6 +1250,96 @@ Phase 6's own DoD ("expected per-submission finalize rate reported as its own
 metric," R5.5) should reuse this same honest-caveat pattern — a number from the
 real 20-photo corpus, with the corpus's narrowness stated, not hidden.
 
+**Commit:** 78f6154
+
+---
+
+# ===== PHASE 6 — Bubble classifier + confidence gate  (2026-09-11) =====
+
+Subtask plan: `docs/phases/phase-6.md`.
+
+## phase-6.1–6.4 — classifier, gate, label corrections, corpus metrics   (2026-09-11)
+
+**Done (pure: `numpy` + `app.omr.geometry`/`alignment` + `app.sheet_template`,
+no Django — rule 7):**
+- `app/omr/classify.py`:
+  - `bubble_fill_score(gray, H, center_mm, bubble_diameter_mm, ...)` — R5.6's
+    local-background normalization: samples a fill disk (0.55× diameter) and a
+    surrounding background ring (1.15×–+2mm) **both located via the local
+    px-per-mm derived from `H` at that specific bubble** (not one page-wide
+    scale — same approach as 5.3/5.4), returns `(bg_mean − fill_mean) /
+    bg_mean`. `None` (never guessed) if the sample region falls outside the
+    image.
+  - `classify_bubble_score` / `BubbleState` (FILLED/EMPTY/AMBIGUOUS) —
+    thresholds `empty_max=0.15`, `filled_min=0.35` (provisional, corpus-derived
+    like Phase 5's gates).
+  - `classify_page` — per-question list of `BubbleFill`.
+  - `evaluate_question_gate` — R5.7's exact per-question rule: any ambiguous
+    bubble flags; 0 filled flags regardless of `key_size`; `key_size==1` and
+    `>1` filled flags; a multi-answer question's mark *count* is never itself a
+    flag.
+  - `SubmissionStatus` + `evaluate_submission` — ties `align_page`'s
+    `PageAlignment`/`AlignmentError` to the per-question gate.
+    **Simplification, documented not silent:** R5.7 names `qr_unreadable` as a
+    status distinct from `alignment_failed`; `app.omr.detect`/`alignment`
+    don't currently distinguish "QR not decoded" from other `marks_not_found`
+    causes at the exception level, and QR decode was 100% (20/20) through all
+    of Phase 5 — no real evidence to calibrate a split. Every `AlignmentError`
+    maps to `ALIGNMENT_FAILED` for now; revisit if it ever matters in practice.
+
+- **6.2 — corpus label corrections (data-quality finding, not planned work):**
+  while calibrating thresholds against the real corpus, found **15 of 555**
+  labeled questions where the AI-transcribed "marked" letter scored near-zero
+  fill while an *adjacent* letter in the same question scored 0.4–0.9 — the
+  counts didn't move at all across a wide threshold sweep (0.05–0.15 empty_max
+  × 0.2–0.35 filled_min), which is the signature of a real off-by-one
+  transcription slip (2026-09-11, `910edca`), not classifier ambiguity.
+  Corrected all 15 in `corpus/labels/*.json` (9 files) with a dated note
+  explaining the evidence. Before: 15 marked-as-empty + 16 unmarked-as-filled
+  "confident-wrong" cases at every threshold tested. After: **0** in either
+  direction; marked-bubble scores min 0.38 (was −0.015), unmarked-bubble max
+  0.34 (was 0.869, one flagged-as-uncertain smudge already noted in a label).
+
+- **6.3 — synthetic clean-scan accuracy (R5.5's separate "held-out ≥99%"):** a
+  no-perspective, no-camera-noise synthetic renderer (`_render_clean_synthetic`
+  in the test file) with a known random fill pattern — the right tool
+  specifically for this idealized-conditions metric (design principle 2:
+  synthetic is a supplement, never the real-photo evidence). **100%** accuracy,
+  0 ambiguous, across 2 test batteries (one 40Q/N4 sheet + five 30Q/N5 sheets
+  with different random seeds).
+
+- **6.4 — real-corpus metrics (R5.5), measured honestly:** across all 20 real
+  corpus photos: **bubble accuracy 99.93% (2668/2670, 2 ambiguous)**;
+  **finalize rate 75% (15/20)**. The finalize rate is computed under an
+  explicit, documented assumption — `key_size=1` (single-answer) for every
+  question, since the corpus sheets are Phase-0 technical test sheets with no
+  real ingested question bank / `|K|` behind them, not invented ground truth.
+  5/20 don't finalize because of the 2 ambiguous bubbles plus real multi-mark
+  cases (e.g. one label's flagged genuine double-mark) that a strict
+  single-answer assumption correctly flags — same honest-caveat pattern as
+  Phase 5.5: a real number from a narrow 20-photo/2-session corpus, not hidden
+  behind a rosier synthetic-only figure.
+
+**DoD proof:** `pytest tests/test_omr_classify.py -q` → **12 passed**: 7 pure
+R5.7 gate-rule tests, 2 synthetic clean-accuracy tests (≥99%, asserted), 1
+`AlignmentError`→`ALIGNMENT_FAILED` mapping test, 1 real-corpus metrics test
+(prints the numbers above, asserts accuracy ≥98% as a regression guard — not a
+target being gamed). `pytest tests/test_omr_crop.py -q` re-run after the label
+corrections → still 24 passed (even stronger separation now). `pytest
+tests/test_purity.py -q` → `app.omr` still zero-Django. `pytest -m "not
+django_db" -q` → **321 passed** (was 310). `ruff` clean.
+
+**Notes / affects later phases:** Phase 7 (full pipeline + persistence) can
+call `evaluate_submission` directly once it has real `key_sizes` from an
+ingested quiz's question bank — Phase 6's `key_size=1` corpus assumption goes
+away there. `AlignmentError`'s `marks_not_found`/`qr_unreadable` conflation
+(documented above) is a candidate for a future small fix if real usage ever
+shows it matters. `SubmissionStatus`/`QuestionGateResult` are designed be
+reused as-is by Phase 7's `Submission`/`Answer` persistence layer rather than
+reinvented.
+
+**PHASE 6 IS COMPLETE (6.1–6.4, all subtasks done and verified).**
+
 **Commit:** (recorded after this entry is committed)
 
 ---

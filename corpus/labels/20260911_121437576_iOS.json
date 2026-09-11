@@ -6,9 +6,97 @@
   "sheet_token": "8e48aa28-b1b1-5829-8e64-50ee6f2d1843",
   "lighting": "overhead fluorescent, glare/reflections off a stainless steel surface",
   "marked_options": {
-    "1": ["B"], "2": ["E"], "3": ["B"], "4": ["D"], "5": ["A"], "6": ["A"], "7": ["D"], "8": ["C", "E"], "9": ["E"], "10": ["B"],
-    "11": ["A"], "12": ["B"], "13": ["D"], "14": ["D"], "15": ["B"], "16": ["C"], "17": ["A"], "18": ["E"], "19": ["C"], "20": ["A"],
-    "21": ["B"], "22": ["D"], "23": ["E"], "24": ["A"], "25": ["A"], "26": ["E"], "27": ["D"], "28": ["C"], "29": ["C"], "30": ["A"]
+    "1": [
+      "B"
+    ],
+    "2": [
+      "E"
+    ],
+    "3": [
+      "C"
+    ],
+    "4": [
+      "D"
+    ],
+    "5": [
+      "A"
+    ],
+    "6": [
+      "A"
+    ],
+    "7": [
+      "D"
+    ],
+    "8": [
+      "C",
+      "E"
+    ],
+    "9": [
+      "E"
+    ],
+    "10": [
+      "B"
+    ],
+    "11": [
+      "A"
+    ],
+    "12": [
+      "B"
+    ],
+    "13": [
+      "D"
+    ],
+    "14": [
+      "D"
+    ],
+    "15": [
+      "B"
+    ],
+    "16": [
+      "C"
+    ],
+    "17": [
+      "A"
+    ],
+    "18": [
+      "E"
+    ],
+    "19": [
+      "C"
+    ],
+    "20": [
+      "A"
+    ],
+    "21": [
+      "B"
+    ],
+    "22": [
+      "D"
+    ],
+    "23": [
+      "E"
+    ],
+    "24": [
+      "B"
+    ],
+    "25": [
+      "A"
+    ],
+    "26": [
+      "E"
+    ],
+    "27": [
+      "D"
+    ],
+    "28": [
+      "C"
+    ],
+    "29": [
+      "C"
+    ],
+    "30": [
+      "A"
+    ]
   },
-  "notes": "sheet_c_30q_n5, all 30 questions filled with a dark blue pen. Q8 has two bubbles filled (C and E) — read as a genuine double-mark rather than a transcription error, but worth a second look. Photographed at a slight tilt on a metal tabletop; QR code and all 4 fiducial corners visible and unobstructed. marked_options transcribed by AI (Claude) visual inspection of the phone photo, not independently verified against the physical sheet — spot-check before relying on it as Phase 6 scoring ground truth."
+  "notes": "sheet_c_30q_n5, all 30 questions filled with a dark blue pen. Q8 has two bubbles filled (C and E) \u2014 read as a genuine double-mark rather than a transcription error, but worth a second look. Photographed at a slight tilt on a metal tabletop; QR code and all 4 fiducial corners visible and unobstructed. marked_options transcribed by AI (Claude) visual inspection of the phone photo, not independently verified against the physical sheet \u2014 spot-check before relying on it as Phase 6 scoring ground truth. CORRECTED 2026-09-11: local-normalized fill-score analysis (Phase 6 classifier calibration) found the originally-transcribed letter scored near-zero fill (empty-looking) while an adjacent letter in the same question scored 0.4-0.9 (clearly filled) -- an unambiguous sign of an off-by-one AI transcription error in the original labeling pass, not classifier ambiguity. Corrected questions: Q3->C, Q24->B."
 }
