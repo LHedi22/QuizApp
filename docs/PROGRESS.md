@@ -2052,3 +2052,110 @@ photograph/scan/label per `corpus/README.md`, `python scripts/check_corpus.py`
 exits 0, commit. Then Phase 5.2 — stop and ask (rule 9).
 
 **Commit:** 6cec1ab
+
+---
+
+# ===== PHASE 11 — End-to-end + load  (2026-09-11) =====
+
+Subtask plan: `docs/phases/phase-11.md`. Last unstarted phase in the §5
+order — Phases 8/9/12 were built out of order earlier (sanctioned parallel
+track while 5.2–7 were blocked on the corpus); Phase 10 (LLM suggestion aid)
+stays **intentionally skipped**, not built — spec says "build only if the
+Phase 9 review queue proves a real time sink," which hasn't been
+established by any real usage yet.
+
+**Shared test input:** `tests/conftest.py::render_filled_submission_image`
+renders a version's real answer-sheet PDF (Phase 4), rasterizes it via
+`pymupdf` exactly like Phase 7's real batch-upload path, and draws filled
+bubbles onto the raster at the real `bubble_centres()` mm positions. This
+lets `align_page`/`classify_page` run for real (Stage A/B detection, QR
+decode) against a *freshly created* quiz/version from a test's own e2e flow
+— real corpus photos can't be reused here since they're tied to 4 fixed
+corpus master sheets with fixed `qr_id`s, not a version freshly minted by
+`generate_versions_for_quiz`.
+
+## phase-11.1 — Happy path e2e   (2026-09-11)
+
+**Done:**
+- `tests/test_e2e_happy_path.py` (1 test): the full professor workflow
+  through real Django views only — create quiz → upload 8 questions (.xlsx)
+  → generate 2 versions → download all 4 PDFs → mark a version printed →
+  scan an all-correct rendered submission through `submission_upload` →
+  auto-finalizes at the correct total → assign a student label → shows up
+  in both the results list and the CSV export. Every step asserts against
+  real DB state.
+
+**DoD proof:** `pytest -q tests/test_e2e_happy_path.py` → 1 passed in 3.4s.
+
+## phase-11.2 — Unhappy paths   (2026-09-11)
+
+**Done:** `tests/test_e2e_unhappy_paths.py` (7 tests), each through the real
+view/helper that owns that failure mode:
+- **bad spreadsheet row** (R1.3/R1.5): a row missing an option cell →
+  `quiz_upload` returns 200 with the row error rendered, zero `Question`
+  rows written.
+- **infeasible `M` request** (R2.2): a 1-question quiz (1! = 1 ordering)
+  asked for `m=2` → `version_generate` redirects with an error, zero
+  `Version` rows written.
+- **unreadable QR / failed alignment** (R5.1): a blank image → `FAILED`/
+  `ALIGNMENT_FAILED`, zero `Answer` rows, inline error, raw image still
+  saved. A second test exercises `align_page` directly with a
+  `version_lookup` that never matches, confirming both "no QR at all" and
+  "QR decoded but unknown" land on the same clean `AlignmentError` channel
+  (documented in Phase 6/7 — not re-litigated).
+- **ambiguous bubble** (R5.7): a mid-gray fill (score between
+  `empty_max`=0.15 and `filled_min`=0.35) on one bubble → that answer flags
+  `ambiguous_bubble`, submission `NEEDS_REVIEW`, `total_score` withheld.
+- **duplicate submission** (R5.8): the same rendered image submitted twice
+  → matching `answer_hash`, `find_probable_duplicate` finds the first,
+  `duplicate_of` stays `None` (never auto-set — Appendix A). Called
+  directly since no view wires this up yet (Phase 7's documented design).
+- **upside-down scan** (R5.2): the happy-path image rotated 180° through
+  `submission_upload` → fails cleanly, never silently misgraded. This is
+  R5.2's *behavior* requirement, which stayed in scope even after the
+  2026-09-11 corpus-gate decision dropped only the *corpus testing*
+  requirement for it (documented in `phase_status.md`).
+
+**DoD proof:** `pytest -q tests/test_e2e_unhappy_paths.py` → 7 passed in 7.0s.
+
+## phase-11.3 — Class-scale load   (2026-09-11)
+
+**Done:**
+- `scripts/load_test.py`: standalone benchmark (not part of `pytest -q`) —
+  builds a 100-question, N=4 quiz, generates 5 versions, runs 60
+  rendered-and-filled all-correct submissions (12/version) through
+  `process_batch` (the real batch-upload orchestrator), reports wall time /
+  per-sheet average / peak `tracemalloc` memory (no `resource`/`psutil` dep
+  in this repo, and Windows dev lacks `resource`) against a written bound
+  of **≤5s/sheet**.
+- `tests/test_load_batch.py` (1 test): the same scenario at CI scale (20
+  questions, 2 versions, 10 sheets) as a real, fast pytest DoD check.
+
+**DoD proof — `python scripts/load_test.py` (real run, dev Postgres):**
+```
+sheets scanned:      60
+finalized:           60/60
+correct (all-100):   60/60
+total wall time:     119.71s
+per-sheet average:   1.995s (bound: 5.0s)
+peak traced memory:  15.2 MB
+PASS
+```
+`pytest -q tests/test_load_batch.py` → 1 passed in 6.3s (10 sheets, well
+under the bound). No correctness regression (100% finalize + 100% correct
+at both scales) and no memory blowup (15.2 MB peak on 60 real
+align→classify→score cycles).
+
+**DoD proof — whole suite:** `pytest -q` (dev Postgres) → **484 passed**
+(475 + 9 new). `ruff check .` clean. `PGPORT=5435 bash scripts/ci.sh` →
+ruff + full pytest + clean-DB migrate + backup/restore round-trip →
+**ALL GREEN**. `app/omr`/`app/grading` untouched by Phase 11 (rule 7 —
+Phase 11 only adds tests + one standalone script, no `app/` changes).
+
+**PHASE 11 IS COMPLETE (11.1–11.3, all subtasks done and verified).**
+
+With Phase 11 done, every phase in `docs/REBUILD_SPEC.md` §5 is either
+complete (0, 1–9, 11, 12) or intentionally deferred by the spec's own text
+(10 — LLM suggestion aid, pending real evidence the review queue needs it).
+
+**Commit:** (recorded after this entry is committed)

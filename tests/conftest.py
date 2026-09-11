@@ -39,6 +39,57 @@ def load_corpus_cases() -> list[tuple[Path, dict, dict]]:
             cases.append((image_path, label, meta))
     return cases
 
+def render_filled_submission_image(version, fill_pattern: dict[int, set[int]], *, dpi: int = 150) -> bytes:
+    """Render `version`'s real answer-sheet PDF (Phase 4), rasterize it exactly
+    like the real batch-upload path (Phase 7's `pymupdf` raster), and draw
+    filled bubbles onto the raster at the real `bubble_centres` mm positions.
+
+    A genuine "real UI + real backend" scan input for Phase 11's e2e/load
+    tests: `align_page`/`classify_page` run for real against it (Stage A/B
+    detection, QR decode), not the identity-homography shortcut
+    `tests/test_omr_classify.py` uses for its held-out accuracy metric. It is
+    deliberately noise-free (no camera perspective/lighting) — real-capture
+    robustness is Phase 5/6's separate, already-established claim over the
+    real corpus (CLAUDE.md rule 9); Phase 11 is about workflow correctness
+    and throughput, not re-proving OMR accuracy.
+
+    `fill_pattern`: `{sheet_position: {sheet_option_index, ...}}` — 1-based
+    sheet position (not question id), 0-based sheet option index (0=A).
+    """
+    import cv2
+    import numpy as np
+    import pymupdf
+
+    from app.core.blob_storage import get_blob_storage
+    from app.pdf.artifacts import render_and_store_version_pdfs
+    from app.sheet_template import bubble_centres, load_template
+
+    paths = render_and_store_version_pdfs(version)
+    pdf_bytes = get_blob_storage().read(paths["answer_sheet"])
+
+    doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+    page = doc[0]
+    pix = page.get_pixmap(dpi=dpi)
+    arr = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
+    gray = cv2.cvtColor(arr[:, :, :3], cv2.COLOR_RGB2GRAY) if pix.n >= 3 else arr[:, :, 0].copy()
+    doc.close()
+
+    template = load_template()
+    n_options = version.quiz.options_per_question
+    num_questions = len(version.question_order)
+    centres = bubble_centres(template, num_questions, n_options)
+    scale = dpi / 25.4
+    radius_px = max(2, int(template.geometry.grid.bubble_diameter_mm / 2 * scale * 0.8))
+    for q, opts in centres.items():
+        for opt_idx in fill_pattern.get(q, set()):
+            x_mm, y_mm = opts[opt_idx]
+            cv2.circle(gray, (int(x_mm * scale), int(y_mm * scale)), radius_px, 0, thickness=-1)
+
+    ok, buf = cv2.imencode(".jpg", gray, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
+    assert ok
+    return buf.tobytes()
+
+
 QUESTION_HEADER = [
     "question_text",
     "option_1",
