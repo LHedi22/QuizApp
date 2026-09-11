@@ -5,8 +5,16 @@ Checks, for `corpus/` (or a given root):
   * each label's fields, enums, `sheet_token`, and `marked_options` are valid for the
     referenced source sheet;
   * optional `fiducial_px` (Phase 5 alignment gold data) is 4 in-bounds points;
-  * aggregate thresholds: >=30 phone photos, >=10 copier scans, >=5 photocopied
-    (1-2 generations), >=5 upside-down / reversed captures.
+  * aggregate threshold: >=30 phone photos.
+
+Note (2026-09-11, user decision): the copier_scan / photocopied / upside_down
+thresholds from REBUILD_SPEC §6 Q10/Q18 are relaxed to 0 here — the user's
+deployment never uses a copier/scanner or photocopied/upside-down sheets, so
+those capture modes aren't required in the corpus. REBUILD_SPEC.md itself is
+left unchanged (by explicit user choice) — this script is the actual gate.
+R5.2's "reliably return a clean failure on near-180° orientation" behavior is
+still in scope for the Phase 5 aligner; only the corpus *testing* requirement
+for it was dropped. See docs/PROGRESS.md 2026-09-11 entry for the full decision.
 
 Exit 0 = corpus complete. Non-zero = something missing (each reason is printed).
 This is the standing gate for subtask 0.7.
@@ -43,9 +51,9 @@ OPTIONAL_KEYS = {"fiducial_px"}
 @dataclass(frozen=True)
 class Thresholds:
     min_phone_photo: int = 30
-    min_copier_scan: int = 10
-    min_photocopied: int = 5
-    min_reversed: int = 5
+    min_copier_scan: int = 0
+    min_photocopied: int = 0
+    min_reversed: int = 0
 
 
 DEFAULT_THRESHOLDS = Thresholds()

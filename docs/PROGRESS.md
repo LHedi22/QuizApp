@@ -40,11 +40,12 @@ Format per entry:
   gate**: `phone_photo 20/30, copier_scan 0/10, photocopied 0/5, upside_down/reversed
   0/5`. User confirmed (2026-09-11): none of the 20 are photocopies; explicitly
   chose to proceed with phone-only for now rather than add scans/photocopies/
-  upside-down captures immediately. **Phase 0.7 / Phase 5.2 remain BLOCKED** — still
-  need ≥10 more phone photos, ≥10 copier/scanner scans, ≥5 photocopied (1–2
-  generations before filling), ≥5 upside-down or reversed captures, and (ideally)
-  `marked_options` transcribed per sheet (self-reported or a careful verified pass)
-  before this is usable as Phase 6 ground truth.
+  upside-down captures immediately. **Phase 0.7 / Phase 5.2 remain BLOCKED** — at
+  the time of this entry, still needed ≥10 more phone photos, ≥10 copier/scanner
+  scans, ≥5 photocopied (1–2 generations before filling), ≥5 upside-down or
+  reversed captures (**superseded by "update 3" below — copier_scan/photocopied/
+  upside_down are no longer required**), and (ideally) `marked_options`
+  transcribed per sheet before this is usable as Phase 6 ground truth.
   **2026-09-11 update 2:** user asked to proceed without adding new captures
   ("go ahead. i wont upload new pictures"). All 20 images visually re-inspected and
   `marked_options` transcribed per-question into each label (Claude/AI visual read,
@@ -59,6 +60,32 @@ Format per entry:
   20/30, copier_scan 0/10, photocopied 0/5, upside_down/reversed 0/5) — user has
   explicitly chosen not to add more captures for now, so **Phase 0.7 / Phase 5.2
   remain BLOCKED** until more images (scans, photocopies, upside-down) are added.
+  **2026-09-11 update 3 — corpus gate relaxed by user decision:** user stated
+  copier/scanner capture, photocopied-before-filling sheets, and upside-down/
+  reversed captures "won't happen in real life" for their deployment. Confirmed
+  via clarifying questions:
+  - Keep R5.2's behavioral requirement — the Phase 5 aligner must still return a
+    **clean, specific failure** (never a silent wrong fit) if it ever encounters
+    a near-180°/upside-down sheet. Only the *corpus testing* requirement for this
+    case is dropped, not the code robustness requirement.
+  - Drop the photocopy-generation requirement too (sheets are always printed
+    fresh, never photocopied before distribution).
+  - **REBUILD_SPEC.md is intentionally left unchanged** (§2 R5.2, §6 Q10/Q18, the
+    Phase 5/11 DoD lines, docs/CLAUDE.md's corpus description all still describe
+    the original Round-3 requirement) — user chose to relax only the actual gate,
+    not the spec text. **Future sessions: this entry is the authoritative
+    override** — `scripts/check_corpus.py` no longer matches REBUILD_SPEC.md by
+    design; trust the script + this note over the spec text for corpus
+    composition. Phase 5's near-180° *behavior* requirement (clean failure) is
+    still live and un-relaxed.
+  - `scripts/check_corpus.py`: `Thresholds` defaults changed —
+    `min_copier_scan`/`min_photocopied`/`min_reversed` → 0 (was 10/5/5);
+    `min_phone_photo` unchanged at 30. Docstring updated to match.
+    `tests/test_corpus_validator.py` (19 tests) still pass — they pin explicit
+    `Thresholds(...)` overrides, unaffected by the default change.
+  - **Only remaining gate: phone_photo count.** Currently 20/30 — corpus needs
+    10 more phone photos (any mix of sheet_a/b/c/d, upright, generation-0) to
+    pass `check_corpus.py` and unblock Phase 5.2.
 
 ---
 
