@@ -24,21 +24,39 @@ from app.web.forms import AnswerOverrideForm, RosterPasteForm, StudentAssignForm
 _LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
+def _sheet_letter_options(version: Version, question: Question) -> list[tuple[str, str]]:
+    """`[(sheet_letter, option_text)]` for one question on this specific
+    version's printed sheet — questions are shuffled per version (R2.1/R2.3),
+    so sheet letter A doesn't mean the same option across two versions. Needed
+    so the review page can show real option text next to a bare letter instead
+    of forcing the professor to cross-reference the printed question paper by
+    hand."""
+    order = version.option_order.get(str(question.id), [])
+    return [(_LETTERS[i], question.options[canonical_idx]) for i, canonical_idx in enumerate(order)]
+
+
 def _answer_rows(submission: Submission):
     version = submission.version
     questions = {q.order_index: q for q in Question.objects.filter(quiz_id=version.quiz_id)}
     rows = []
     for ans in submission.answers.all():
         question = questions.get(ans.question_no)
+        letter_options = _sheet_letter_options(version, question) if question else []
+        text_by_letter = dict(letter_options)
         rows.append(
             {
                 "answer": ans,
                 "question": question,
+                "letter_options": letter_options,
+                "detected_text": [text_by_letter.get(letter, letter) for letter in ans.detected_options],
                 "correct_letters": (
                     sorted(recover_correct_letters(version, question)) if question else []
                 ),
             }
         )
+        rows[-1]["correct_text"] = [
+            text_by_letter.get(letter, letter) for letter in rows[-1]["correct_letters"]
+        ]
     # flagged rows pinned to the top (R6.2), then canonical question order
     rows.sort(key=lambda r: (not r["answer"].flagged, r["answer"].question_no))
     return rows
@@ -60,7 +78,6 @@ def submission_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "events": submission.audit_events.select_related("actor_professor").order_by(
                 "-created_at"
             ),
-            "option_letters": list(_LETTERS[: quiz.options_per_question]),
             "assign_form": StudentAssignForm(quiz=quiz, instance=submission),
         },
     )

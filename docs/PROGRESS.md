@@ -2259,3 +2259,60 @@ scenario that broke before this fix. `ruff check .` clean. `pytest -q`
 (throwaway Postgres) → **490 passed**.
 
 **Commit:** `b7f59d3`
+
+---
+
+# ===== Review-page UX fix — show question/option text  (2026-09-11) =====
+
+**Reported by the user in the live app:** "i tried a quiz and submitted but
+detections are wrong partially."
+
+**Investigation:** pulled the actual submitted photo out of the running
+container's blob volume and re-ran `align_page`/`classify_page` directly
+against it, dumping per-bubble fill scores. Every one of the 10 marks was
+read with a strong, unambiguous score (~0.6-0.7 filled vs ~0 or negative
+empty — no borderline cases) and matched a direct visual read of the photo
+exactly. Cross-checked the DB's stored `Answer.detected_options` against the
+version's actual `question_order`/`option_order` (real shuffle:
+`question_order=[9,6,5,8,2,10,4,3,7,1]`, not identity) and **every single
+stored answer reconciled exactly** once the R2.5 anti-cheating shuffle was
+accounted for — canonical question 1 sits at sheet row 10, question 2 at row
+5, etc. **The OMR pipeline and scoring were both 100% correct.**
+
+**Real root cause: a review-page UX gap, not a detection bug.** The
+submission-detail page showed bare letters and a bare canonical question
+number ("Q1: detected D, correct B") with **no question text and no option
+text**. A professor (or, here, the user testing their own submission)
+filling in the sheet by eyeballing physical row position rather than reading
+the actual printed/shuffled question paper — or just reviewing the results
+afterward — had no way to sanity-check a detection against real content,
+since sheet letters mean different options on every version (R2.1/R2.3).
+Confirmed by mathematically reconciling all 10 stored answers against a
+fresh independent pipeline run — see above.
+
+**Fix:**
+- `app/web/review_views.py`: new `_sheet_letter_options(version, question) ->
+  list[(sheet_letter, option_text)]`, mapping each sheet letter through
+  *this version's own* `option_order` to real option text.
+  `_answer_rows` now also returns `letter_options`, `detected_text`,
+  `correct_text` per row. Dropped the now-unused generic `option_letters`
+  context key.
+- `app/web/templates/web/submission_detail.html`: the "Q" column now shows
+  the question text, not just the number; "Read" and "Correct key" show
+  `letter: option text` instead of a bare letter; the override checkboxes
+  are labeled the same way. Added an explanatory note about why letters
+  differ per version.
+- `tests/test_web_submission_detail.py`: fixed a stale markup-shape
+  assertion (`test_answer_sheet_renders_flagged_first_and_edited_marker`);
+  added `test_answer_sheet_shows_option_text_for_this_versions_shuffle` — a
+  question with a deliberately shuffled `option_order` where the
+  canonical-correct option lands on a *different* sheet letter than the
+  detected one, asserting the page shows the right real text for each
+  ("C: Paris" detected, "A: London" as the actual correct key) — this
+  precisely reproduces (and would have caught) the confusion the user hit.
+
+**DoD proof:** `ruff check .` clean. `pytest -q` (throwaway Postgres) →
+**491 passed**. Redeployed the running `docker compose` app/worker so the
+live app reflects this.
+
+**Commit:** (recorded after this entry is committed)

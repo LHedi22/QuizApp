@@ -20,6 +20,12 @@
   </form>
 
   <h2>Answer sheet</h2>
+  <p class="muted">
+    Question numbers are canonical (spreadsheet order) — every version prints
+    them in a different shuffled order and position on the sheet (R2.1), so
+    the letters below are shown with this version's actual option text
+    rather than bare A/B/C/D.
+  </p>
   <table>
     <thead>
       <tr><th>Q</th><th>Read</th><th>Conf.</th><th>Correct key</th><th>✓/✗</th>
@@ -28,19 +34,31 @@
     <tbody>
       {% for row in rows %}
       <tr>
-        <td>{{ row.answer.question_no }}{% if row.answer.flagged %} <span class="badge">flag: {{ row.answer.flag_reason }}</span>{% endif %}</td>
-        <td>{{ row.answer.detected_options|join:"," |default:"—" }}
-            {% if row.answer.manually_edited %}<span class="badge">edited</span>{% endif %}</td>
+        <td>
+          Q{{ row.answer.question_no }}{% if row.question %}: {{ row.question.text }}{% endif %}
+          {% if row.answer.flagged %} <span class="badge">flag: {{ row.answer.flag_reason }}</span>{% endif %}
+        </td>
+        <td>
+          {% for letter, text in row.letter_options %}
+            {% if letter in row.answer.detected_options %}<strong>{{ letter }}: {{ text }}</strong><br>{% endif %}
+          {% empty %}—{% endfor %}
+          {% if not row.answer.detected_options %}—{% endif %}
+          {% if row.answer.manually_edited %}<span class="badge">edited</span>{% endif %}
+        </td>
         <td class="muted">{{ row.answer.confidence|floatformat:2 }}</td>
-        <td>{{ row.correct_letters|join:"," }}</td>
+        <td>
+          {% for letter, text in row.letter_options %}
+            {% if letter in row.correct_letters %}{{ letter }}: {{ text }}<br>{% endif %}
+          {% endfor %}
+        </td>
         <td>{% if row.answer.correct %}✓{% elif row.answer.correct is False %}✗{% else %}—{% endif %}</td>
         <td>{{ row.answer.score|default_if_none:"—" }}</td>
         <td>
           <form method="post" action="{% url 'answer_override' row.answer.pk %}">
             {% csrf_token %}
-            {% for letter in option_letters %}
+            {% for letter, text in row.letter_options %}
               <label><input type="checkbox" name="marked_options" value="{{ letter }}"
-                {% if letter in row.answer.detected_options %}checked{% endif %}> {{ letter }}</label>
+                {% if letter in row.answer.detected_options %}checked{% endif %}> {{ letter }}: {{ text }}</label><br>
             {% endfor %}
             <button type="submit">save</button>
           </form>
@@ -49,7 +67,7 @@
       {% endfor %}
     </tbody>
   </table>
-  <p class="muted">Override: tick the option letters the student actually marked, then “save”.</p>
+  <p class="muted">Override: tick the option(s) the student actually marked, then “save”.</p>
 
   <h2>History</h2>
   {% if events %}
