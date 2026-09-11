@@ -45,6 +45,20 @@ Format per entry:
   generations before filling), ≥5 upside-down or reversed captures, and (ideally)
   `marked_options` transcribed per sheet (self-reported or a careful verified pass)
   before this is usable as Phase 6 ground truth.
+  **2026-09-11 update 2:** user asked to proceed without adding new captures
+  ("go ahead. i wont upload new pictures"). All 20 images visually re-inspected and
+  `marked_options` transcribed per-question into each label (Claude/AI visual read,
+  not independently verified — each label's `notes` says so; a couple of sheets
+  have a flagged ambiguous double-mark). While re-checking each image's printed
+  header text during transcription, found 2 of the original 20 sheet-identity
+  assignments were wrong (`20260911_131711252_iOS.jpg` is sheet_a not sheet_c;
+  `20260911_121429277_iOS.jpg` is sheet_c not sheet_a) — both `sheet_token` and
+  `marked_options` corrected, `notes` flags the correction. Final distribution:
+  5 images each of sheet_a/b/c/d. `python scripts/check_corpus.py`: still 0
+  structural errors across all 20 labels; gate **still fails** (phone_photo
+  20/30, copier_scan 0/10, photocopied 0/5, upside_down/reversed 0/5) — user has
+  explicitly chosen not to add more captures for now, so **Phase 0.7 / Phase 5.2
+  remain BLOCKED** until more images (scans, photocopies, upside-down) are added.
 
 ---
 

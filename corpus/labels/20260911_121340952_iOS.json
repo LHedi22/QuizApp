@@ -5,6 +5,11 @@
   "orientation": "upright",
   "sheet_token": "26c64470-88f2-501e-890e-1b015c993ebf",
   "lighting": "overhead fluorescent, glare/reflections off a stainless steel surface",
-  "marked_options": {},
-  "notes": "sheet_b_40q_n4, all 40 questions filled with a dark blue pen. Photographed at a slight tilt on a metal tabletop; QR code and all 4 fiducial corners visible and unobstructed. marked_options not yet transcribed — needs a careful pass against the physical sheet before use as Phase 6 scoring ground truth."
+  "marked_options": {
+    "1": ["A"], "2": ["A"], "3": ["A"], "4": ["A"], "5": ["A"], "6": ["A"], "7": ["A"], "8": ["A"], "9": ["A"], "10": ["A"],
+    "11": ["B"], "12": ["B"], "13": ["B"], "14": ["B"], "15": ["B"], "16": ["B"], "17": ["B"], "18": ["B"], "19": ["B"], "20": ["B"],
+    "21": ["C"], "22": ["C"], "23": ["C"], "24": ["C"], "25": ["C"], "26": ["C"], "27": ["C"], "28": ["C"], "29": ["C"], "30": ["C"],
+    "31": ["D"], "32": ["D"], "33": ["D"], "34": ["D"], "35": ["D"], "36": ["D"], "37": ["D"], "38": ["D"], "39": ["D"], "40": ["D"]
+  },
+  "notes": "sheet_b_40q_n4, all 40 questions filled with a dark blue pen in a clean per-column pattern (col1=A, col2=B, col3=C, col4=D). Photographed at a slight tilt on a metal tabletop; QR code and all 4 fiducial corners visible and unobstructed. marked_options transcribed by AI (Claude) visual inspection of the phone photo, not independently verified against the physical sheet — spot-check before relying on it as Phase 6 scoring ground truth."
 }

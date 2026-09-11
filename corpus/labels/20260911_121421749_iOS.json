@@ -5,6 +5,10 @@
   "orientation": "upright",
   "sheet_token": "8e48aa28-b1b1-5829-8e64-50ee6f2d1843",
   "lighting": "overhead fluorescent, glare/reflections off a stainless steel surface",
-  "marked_options": {},
-  "notes": "sheet_c_30q_n5, all 30 questions filled with a dark blue pen. Photographed at a slight tilt on a metal tabletop; QR code and all 4 fiducial corners visible and unobstructed. marked_options not yet transcribed — needs a careful pass against the physical sheet before use as Phase 6 scoring ground truth."
+  "marked_options": {
+    "1": ["A"], "2": ["B"], "3": ["C"], "4": ["B"], "5": ["E"], "6": ["D"], "7": ["B"], "8": ["B"], "9": ["D"], "10": ["D"],
+    "11": ["A"], "12": ["E"], "13": ["E"], "14": ["D"], "15": ["C"], "16": ["C"], "17": ["D"], "18": ["B"], "19": ["E"], "20": ["E"],
+    "21": ["A"], "22": ["E"], "23": ["D"], "24": ["C"], "25": ["E"], "26": ["A"], "27": ["B"], "28": ["D"], "29": ["A"], "30": ["E"]
+  },
+  "notes": "sheet_c_30q_n5, all 30 questions filled with a dark blue pen. Photographed at a slight tilt on a metal tabletop; QR code and all 4 fiducial corners visible and unobstructed. marked_options transcribed by AI (Claude) visual inspection of the phone photo, not independently verified against the physical sheet — spot-check before relying on it as Phase 6 scoring ground truth."
 }

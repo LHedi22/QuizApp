@@ -5,6 +5,11 @@
   "orientation": "upright",
   "sheet_token": "26563cba-ae82-5786-95ca-918b33220333",
   "lighting": "diffuse indoor light, matte off-white surface, less glare than the earlier batch",
-  "marked_options": {},
-  "notes": "sheet_a_20q_n4, all 20 questions filled with a dark blue pen. Second capture session (~1h after the first batch), different table/lighting; a pen is visible near the top-right of the frame. QR code and all 4 fiducial corners visible and unobstructed. marked_options not yet transcribed — needs a careful pass against the physical sheet before use as Phase 6 scoring ground truth."
+  "marked_options": {
+    "1": ["C"], "2": ["C"], "3": ["C"], "4": ["C"], "5": ["C"],
+    "6": ["C"], "7": ["D"], "8": ["A"], "9": ["B"], "10": ["D"],
+    "11": ["B"], "12": ["D"], "13": ["A"], "14": ["B"], "15": ["C"],
+    "16": ["D"], "17": ["D"], "18": ["C"], "19": ["B"], "20": ["B"]
+  },
+  "notes": "sheet_a_20q_n4, all 20 questions filled with a dark blue pen. Second capture session (~1h after the first batch), different table/lighting; a pen is visible near the top-right of the frame. QR code and all 4 fiducial corners visible and unobstructed. marked_options transcribed by AI (Claude) visual inspection of the phone photo, not independently verified against the physical sheet — spot-check before relying on it as Phase 6 scoring ground truth."
 }
