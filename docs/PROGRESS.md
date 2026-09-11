@@ -2212,5 +2212,4 @@ clean (10/10 questions, zero errors) through the real `parse_workbook`.
 --env-file deploy/.env -f deploy/docker-compose.yml up -d --build`) so the
 live app on `http://localhost:8010` reflects this change.
 
-**Not yet committed** — awaiting the user's go-ahead per the "never commit
-unless asked" rule.
+**Commit:** `cec9372`
