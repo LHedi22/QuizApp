@@ -193,6 +193,34 @@ def _parse_row(
     )
 
 
+def detect_options_per_question(source: str | Path | bytes | BytesIO) -> int | None:
+    """Count the contiguous `option_1..option_N` header columns in a workbook,
+    so `N` can be read from the file itself instead of asked for separately
+    (R1.1: the professor no longer picks N up front — it's extracted from the
+    same header `parse_workbook` validates against). Returns `None` if the
+    file can't be read or has no `option_1` column at all.
+    """
+    if isinstance(source, bytes):
+        source = BytesIO(source)
+    try:
+        workbook = openpyxl.load_workbook(source, read_only=True, data_only=True)
+    except Exception:  # noqa: BLE001 - any openpyxl failure just means "can't detect"
+        return None
+    try:
+        worksheet = workbook.active
+        header_row = next(worksheet.iter_rows(values_only=True), None)
+    finally:
+        workbook.close()
+    if not header_row:
+        return None
+
+    names = {_cell_text(v).lower() for v in header_row}
+    n = 0
+    while f"option_{n + 1}" in names:
+        n += 1
+    return n or None
+
+
 def parse_workbook(
     source: str | Path | bytes | BytesIO,
     *,

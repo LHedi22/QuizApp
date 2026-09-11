@@ -50,32 +50,29 @@ _MARKING_MODE_CHOICES = Quiz.MarkingMode.choices
 class QuizCreateForm(forms.Form):
     """Create a quiz (R1.1). Delegates to `services.create_quiz` so the same
     field-keyed validation runs whether the caller is this form or a script.
+    `options_per_question` is not a field here — it's detected from the
+    uploaded spreadsheet's `option_1..option_N` header columns (see
+    `quiz_views.quiz_create`), not chosen separately.
     """
 
     title = forms.CharField(max_length=200)
-    options_per_question = forms.TypedChoiceField(
-        choices=[(n, str(n)) for n in range(2, 7)],
-        coerce=int,
-        label="Options per question",
-        help_text="2–6, uniform for the whole quiz. Fixed once set.",
-    )
     marking_mode = forms.ChoiceField(choices=_MARKING_MODE_CHOICES)
     negative_marking = forms.BooleanField(required=False)
     default_points = forms.FloatField(min_value=0, initial=1.0)
 
-    def save(self, professor) -> Quiz:
+    def save(self, professor, *, options_per_question: int) -> Quiz:
         """Create and return the quiz. Call only after `is_valid()`."""
         c = self.cleaned_data
         try:
             return create_quiz(
                 professor=professor,
                 title=c["title"],
-                options_per_question=c["options_per_question"],
+                options_per_question=options_per_question,
                 marking_mode=c["marking_mode"],
                 negative_marking=c["negative_marking"],
                 default_points=c["default_points"],
             )
-        except DjangoValidationError as exc:  # pragma: no cover - form fields catch these first
+        except DjangoValidationError as exc:  # pragma: no cover - form/detection catch these first
             for field, messages in exc.message_dict.items():
                 for message in messages:
                     self.add_error(field if field in self.fields else None, message)

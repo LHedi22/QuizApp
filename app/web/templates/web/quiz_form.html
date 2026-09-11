@@ -19,9 +19,11 @@
       {{ file_form.file }}
       <div class="muted">
         Header row required: <code>question_text</code>,
-        <code>option_1</code>…<code>option_N</code> (matching "options per
-        question" above), <code>correct_options</code>, optional
-        <code>points</code>. All-or-nothing — an invalid file creates nothing.
+        <code>option_1</code>…<code>option_N</code>, <code>correct_options</code>,
+        optional <code>points</code>. The number of <code>option_</code>
+        columns (2–6) sets this quiz's options-per-question automatically —
+        no need to choose it separately. All-or-nothing — an invalid file
+        creates nothing.
       </div>
       {% if file_form.file.errors %}<ul class="errorlist">{% for e in file_form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     </div>

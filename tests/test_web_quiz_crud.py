@@ -34,7 +34,6 @@ def client_a(client, professor):
 def _create(client, make_xlsx, *, rows=None, file=None, **overrides):
     data = {
         "title": "Midterm",
-        "options_per_question": "4",
         "marking_mode": Quiz.MarkingMode.PARTIAL,
         "default_points": "1.0",
     }
@@ -54,19 +53,46 @@ def test_create_valid_writes_draft_with_questions_and_redirects(client_a, profes
     quiz = Quiz.objects.get()
     assert quiz.professor == professor
     assert quiz.status == Quiz.Status.DRAFT
-    assert quiz.options_per_question == 4
+    assert quiz.options_per_question == 4  # detected from option_1..option_4
     assert quiz.negative_marking is True
     assert quiz.questions.count() == 2
     assert resp.status_code == 302
     assert resp.url == reverse("quiz_detail", args=[quiz.pk])
 
 
+@pytest.mark.parametrize("n_options", [2, 3, 5, 6])
+def test_create_detects_options_per_question_from_the_file(client_a, make_xlsx, n_options):
+    letters = "ABCDEF"
+    header = ["question_text", *(f"option_{i}" for i in range(1, n_options + 1)), "correct_options"]
+    row = ["Q1", *[f"opt {letters[i]}" for i in range(n_options)], "A"]
+    resp = _create(client_a, make_xlsx, rows=[header, row])
+    assert resp.status_code == 302
+    quiz = Quiz.objects.get()
+    assert quiz.options_per_question == n_options
+
+
+def test_create_rejects_a_detected_n_outside_2_to_6(client_a, make_xlsx):
+    header = ["question_text", *(f"option_{i}" for i in range(1, 8)), "correct_options"]
+    row = ["Q1", "a", "b", "c", "d", "e", "f", "g", "A"]
+    resp = _create(client_a, make_xlsx, rows=[header, row])
+    assert resp.status_code == 200
+    assert "between 2 and 6" in resp.content.decode()
+    assert Quiz.objects.count() == 0
+
+
+def test_create_rejects_a_file_with_no_option_columns(client_a, make_xlsx):
+    header = ["question_text", "correct_options"]
+    row = ["Q1", "A"]
+    resp = _create(client_a, make_xlsx, rows=[header, row])
+    assert resp.status_code == 200
+    assert "Couldn" in resp.content.decode()
+    assert Quiz.objects.count() == 0
+
+
 @pytest.mark.parametrize(
     "overrides",
     [
         {"title": ""},
-        {"options_per_question": "7"},
-        {"options_per_question": "1"},
         {"default_points": "-2"},
         {"marking_mode": "bogus"},
     ],
@@ -97,7 +123,6 @@ def test_create_without_a_file_writes_nothing(client_a, make_xlsx):
         reverse("quiz_create"),
         {
             "title": "No file",
-            "options_per_question": "4",
             "marking_mode": Quiz.MarkingMode.PARTIAL,
             "default_points": "1.0",
         },

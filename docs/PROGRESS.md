@@ -2213,3 +2213,49 @@ clean (10/10 questions, zero errors) through the real `parse_workbook`.
 live app on `http://localhost:8010` reflects this change.
 
 **Commit:** `cec9372`
+
+---
+
+# ===== Bugfix — detect options-per-question from the file  (2026-09-11) =====
+
+**Reported by the user in the live app:** "unexpected column 'option_4' (quiz
+has N=3; expected question_text, option_1..option_3, correct_options,
+points). options should be detected directly from the file" — the just-shipped
+combined create+upload flow still asked for `options_per_question` as a
+separate manual field, so it could silently drift out of sync with however
+many `option_N` columns the uploaded file actually had. Root cause: N was
+required up front to validate the header, so it was left as a dropdown
+instead of derived.
+
+**Fix:** `options_per_question` is no longer a field the professor picks —
+it's counted directly from the uploaded file's own header row.
+
+**Done:**
+- `app/core/xlsx_ingest.py::detect_options_per_question(source) -> int | None`
+  (pure, no Django) — counts contiguous `option_1..option_N` header columns;
+  `None` if unreadable or `option_1` is missing entirely.
+- `app/web/forms.py::QuizCreateForm` — dropped the `options_per_question`
+  field; `save()` now takes it as an explicit keyword argument instead of
+  reading it from `cleaned_data`.
+- `app/web/quiz_views.py::quiz_create` — reads the uploaded bytes once, calls
+  `detect_options_per_question`, and: `None` → "couldn't detect... needs
+  option_1, option_2, … columns"; outside 2–6 → "Detected N option columns;
+  a quiz needs between 2 and 6"; otherwise creates the quiz with the detected
+  N and ingests, still inside the same all-or-nothing `transaction.atomic()`
+  block from the prior change.
+- `app/web/templates/web/quiz_form.html` — hint text rewritten: no more
+  "options per question" field to reference; explains the column count
+  drives it automatically.
+- `tests/test_web_quiz_crud.py` — removed the now-meaningless
+  `options_per_question` invalid-value cases (7, 1 — there's no field to post
+  an invalid value into anymore); added
+  `test_create_detects_options_per_question_from_the_file` (parametrized
+  N=2,3,5,6), `test_create_rejects_a_detected_n_outside_2_to_6` (7 option
+  columns), `test_create_rejects_a_file_with_no_option_columns`.
+
+**DoD proof:** verified `detect_options_per_question('sample_quiz.xlsx')`
+returns `4` (matching its actual `option_1..option_4` columns) — the exact
+scenario that broke before this fix. `ruff check .` clean. `pytest -q`
+(throwaway Postgres) → **490 passed**.
+
+**Commit:** (recorded after this entry is committed)

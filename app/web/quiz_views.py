@@ -19,6 +19,7 @@ from app.core.blob_storage import get_blob_storage
 from app.core.ingest import IngestBlocked, ingest_quiz
 from app.core.models import Quiz, Submission, Version
 from app.core.versioning_service import VersionGenerationBlocked, generate_versions_for_quiz
+from app.core.xlsx_ingest import detect_options_per_question
 from app.grading.versioning import InfeasibleVersionCount
 from app.pdf.artifacts import render_and_store_version_pdfs
 from app.web.forms import (
@@ -43,25 +44,41 @@ def quiz_list(request: HttpRequest) -> HttpResponse:
 @login_required
 def quiz_create(request: HttpRequest) -> HttpResponse:
     """Create a quiz and ingest its question spreadsheet in one step (R1.1/R1.2).
-    All-or-nothing: if the file is rejected, the quiz is never persisted either —
-    the professor just fixes the file and resubmits the same form.
+    `options_per_question` is detected from the file's own `option_1..option_N`
+    header columns — never asked for separately, so it can't drift out of sync
+    with what the professor actually uploaded. All-or-nothing: if the file is
+    rejected (or N can't be detected), the quiz is never persisted either.
     """
     form = QuizCreateForm(request.POST or None)
     file_form = QuestionUploadForm(request.POST or None, request.FILES or None)
     result = None
     if request.method == "POST" and form.is_valid() and file_form.is_valid():
-        upload = file_form.cleaned_data["file"]
-        quiz = None
-        with transaction.atomic():
-            quiz = form.save(request.user)
-            result = ingest_quiz(quiz, BytesIO(upload.read()))
-            if not result.ok:
-                transaction.set_rollback(True)
-        if result.ok:
-            messages.success(
-                request, f"Quiz “{quiz.title}” created with {len(result.questions)} question(s)."
+        upload_bytes = file_form.cleaned_data["file"].read()
+        n_options = detect_options_per_question(upload_bytes)
+        if n_options is None:
+            file_form.add_error(
+                "file",
+                "Couldn't detect the options per question — the header row needs "
+                "option_1, option_2, … columns.",
             )
-            return redirect("quiz_detail", pk=quiz.pk)
+        elif not 2 <= n_options <= 6:
+            file_form.add_error(
+                "file", f"Detected {n_options} option columns; a quiz needs between 2 and 6."
+            )
+        else:
+            quiz = None
+            with transaction.atomic():
+                quiz = form.save(request.user, options_per_question=n_options)
+                result = ingest_quiz(quiz, BytesIO(upload_bytes))
+                if not result.ok:
+                    transaction.set_rollback(True)
+            if result.ok:
+                messages.success(
+                    request,
+                    f"Quiz “{quiz.title}” created with {len(result.questions)} question(s) "
+                    f"({n_options} options each).",
+                )
+                return redirect("quiz_detail", pk=quiz.pk)
     return render(
         request,
         "web/quiz_form.html",
