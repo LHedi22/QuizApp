@@ -2258,4 +2258,4 @@ returns `4` (matching its actual `option_1..option_4` columns) — the exact
 scenario that broke before this fix. `ruff check .` clean. `pytest -q`
 (throwaway Postgres) → **490 passed**.
 
-**Commit:** (recorded after this entry is committed)
+**Commit:** `b7f59d3`
