@@ -2366,4 +2366,4 @@ claims that no longer matched reality:
 `docs/phases/phase-8.md`, `phase-9.md`, `phase-12.md`, `phase-11.md` and
 `corpus/labels/SCHEMA.md`: all already accurate, no changes needed there.
 
-**Commit:** (recorded after this entry is committed)
+**Commit:** `f38ff06`
