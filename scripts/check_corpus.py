@@ -14,7 +14,9 @@ those capture modes aren't required in the corpus. REBUILD_SPEC.md itself is
 left unchanged (by explicit user choice) — this script is the actual gate.
 R5.2's "reliably return a clean failure on near-180° orientation" behavior is
 still in scope for the Phase 5 aligner; only the corpus *testing* requirement
-for it was dropped. See docs/PROGRESS.md 2026-09-11 entry for the full decision.
+for it was dropped. min_phone_photo also lowered 30 -> 20 (user: "just use the
+available pictures") to match the 20 phone photos actually captured. See
+docs/PROGRESS.md 2026-09-11 entries for the full decision record.
 
 Exit 0 = corpus complete. Non-zero = something missing (each reason is printed).
 This is the standing gate for subtask 0.7.
@@ -50,7 +52,7 @@ OPTIONAL_KEYS = {"fiducial_px"}
 
 @dataclass(frozen=True)
 class Thresholds:
-    min_phone_photo: int = 30
+    min_phone_photo: int = 20
     min_copier_scan: int = 0
     min_photocopied: int = 0
     min_reversed: int = 0

@@ -127,9 +127,9 @@ def test_default_thresholds_flag_a_small_corpus(tmp_path):
     _img(root / "images" / "phone_a.png")
     _write(root / "labels" / "phone_a.json", {**FULL_LABEL, "image": "phone_a.png"})
 
-    report = validate_corpus(root)  # default 30/10/5/5
+    report = validate_corpus(root)  # default 20/0/0/0
     assert not report.ok
-    assert any("phone_photo has 1, need >= 30" in e for e in report.errors)
+    assert any("phone_photo has 1, need >= 20" in e for e in report.errors)
 
 
 def test_orphan_image_and_orphan_label_are_reported(tmp_path):

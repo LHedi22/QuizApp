@@ -17,22 +17,45 @@ only, no Django.
 
 ## ⚠ Rule 9 — the corpus is the measurement standard
 
-**The real-capture corpus (Phase 0.7) does not exist yet** (no printer). Per
-`CLAUDE.md` rule 9, no OMR DoD may be signed off against synthetic images. This
-splits Phase 5 into:
+**Status (2026-09-11): the Phase 0.7 corpus now exists and passes its gate**
+(`python scripts/check_corpus.py` exits 0 — 20 phone photos, 5 each of
+sheet_a/b/c/d, `corpus/labels/*.json`). Per `CLAUDE.md` rule 9, no OMR DoD may
+be signed off against synthetic images; 5.2–5.5 below may now be started against
+this corpus. Two things any future session must know before touching 5.2–5.5:
 
-- **5.1 — solver core (buildable now).** The projective math: normalized-DLT
+- **The corpus has no upside-down/reversed/copier-scan/photocopied images —
+  by deliberate user decision**, not an oversight (see `docs/PROGRESS.md`
+  2026-09-11 "update 3"/"update 4"). REBUILD_SPEC.md's own text (R5.2, §6 Q18)
+  still says the near-180° detect-vs-clean-failure choice should be "decided
+  during Phase 5 based on what the corpus shows" — that can't happen here since
+  there's no upside-down corpus evidence. **The user already made this call
+  directly: implement the clean-specific-failure path only (no detect-and-correct
+  attempt for near-180°/upside-down) — do not spend effort on 180°-orientation
+  detection/correction.** The aligner must still never produce a *silent* wrong
+  fit on such an input; it just doesn't need to succeed on one.
+  `resolve_page_orientation` (5.1) already resolves the ±20° in-plane case via
+  QR-corner asymmetry — that stays as-is; this note is only about the *separate*
+  near-180° case.
+  `marked_options` in every label is AI-transcribed, not independently verified —
+  spot-check before using a given sheet as scoring ground truth in 6+.
+- Real noise magnitudes, the actual numeric fit-quality gate threshold, and
+  every accuracy/tolerance number for 5.2–5.5 should still be derived from this
+  corpus's actual phone photos — that part of the original rule 9 intent is
+  unchanged.
+
+- **5.1 — solver core (DONE, see below).** The projective math: normalized-DLT
   homography, over-determined robust fit, absolute fit-quality gate, orientation
   resolution, grid projection. Corpus-independent because it is linear algebra with
   *known* ground-truth transforms — the corpus never had a role in verifying a
   homography solver. Tested against programmatically generated transforms
   (rotation ≤ ±20°, keystone, scale, framing) with analytic ground truth.
-- **5.2–5.5 — corpus-gated (BLOCKED).** The image→points front-end (perimeter
-  detection, adaptive threshold, contour/blob extraction), the real noise
-  magnitudes, the actual numeric gate threshold, the near-180° decision (R5.2:
-  detect-and-correct vs. clean-specific-failure — "decided during Phase 5 based on
-  what the corpus shows"), and every accuracy/tolerance number. **Do not start
-  these without the corpus. Stop and ask.**
+- **5.2–5.5 — corpus-gated, now UNBLOCKED (not yet started).** The image→points
+  front-end (perimeter detection, adaptive threshold, contour/blob extraction),
+  the real noise magnitudes, the actual numeric gate threshold, and every
+  accuracy/tolerance number, measured against the corpus above. The near-180°
+  question itself is no longer open — see the bullet above. **Confirm scope with
+  the user before starting** (this is a substantial new phase, not a small
+  follow-on) rather than launching straight into implementation.
 
 ## What Phase 5 does NOT do
 

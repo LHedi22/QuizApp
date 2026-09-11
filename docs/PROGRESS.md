@@ -18,11 +18,13 @@ Format per entry:
 
 ## ⚠ KNOWN-PENDING ITEMS (blocking phase completion, not blocking forward work)
 
-- **phase-0.7 — real-capture corpus.** DEFERRED by the user 2026-09-09; they will do
-  the physical print/photocopy/fill/photograph/scan/label pass later. **Phase 0 is
-  NOT complete** until `python scripts/check_corpus.py` exits 0 and the corpus is
-  committed. Everything else in Phase 0 (0.1–0.6) is done. Forward work through
-  Phase 4 does not depend on the corpus and is authorised to proceed.
+- **phase-0.7 — real-capture corpus. ✅ RESOLVED 2026-09-11** (see "update 4"
+  below) — `python scripts/check_corpus.py` now exits 0, **Phase 0 is complete**.
+  Rest of this entry is history for how it got there. Originally DEFERRED by the
+  user 2026-09-09; they would do the physical print/photocopy/fill/photograph/
+  scan/label pass later. Everything else in Phase 0 (0.1–0.6) was already done.
+  Forward work through Phase 4 did not depend on the corpus and was authorised
+  to proceed.
   **Phase 5's DoD requires the real corpus (CLAUDE.md rule 9) — synthetic images may
   NOT be substituted. If Phase 5 is reached before the corpus exists, stop and ask.**
   **2026-09-11 update:** user captured 20 phone photos of filled Phase-4 answer
@@ -86,6 +88,18 @@ Format per entry:
   - **Only remaining gate: phone_photo count.** Currently 20/30 — corpus needs
     10 more phone photos (any mix of sheet_a/b/c/d, upright, generation-0) to
     pass `check_corpus.py` and unblock Phase 5.2.
+  **2026-09-11 update 4 — phone_photo threshold lowered to match what exists:**
+  user said "just use the available pictures" rather than capture 10 more.
+  `min_phone_photo` 30 → 20 in `scripts/check_corpus.py` (docstring updated;
+  REBUILD_SPEC.md's own wording is just "dozens", not a specific number, so this
+  isn't a spec conflict the way the copier_scan/photocopied/upside_down change
+  was). `tests/test_corpus_validator.py::test_default_thresholds_flag_a_small_corpus`
+  hardcoded the old "need >= 30" in its assertion string — updated to "need >= 20"
+  to match; all 19 tests pass. **`python scripts/check_corpus.py` now exits 0 —
+  "OK: corpus complete."** **Phase 0 is COMPLETE.** **Phase 0.7's corpus gate no
+  longer blocks Phase 5.2** — per rule 9 / rule 5 (stop-and-ask), the next Phase
+  5.2 work should still be scoped and confirmed with the user before starting,
+  but the corpus precondition itself is satisfied.
 
 ---
 
