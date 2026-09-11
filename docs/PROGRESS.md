@@ -2158,4 +2158,4 @@ With Phase 11 done, every phase in `docs/REBUILD_SPEC.md` §5 is either
 complete (0, 1–9, 11, 12) or intentionally deferred by the spec's own text
 (10 — LLM suggestion aid, pending real evidence the review queue needs it).
 
-**Commit:** (recorded after this entry is committed)
+**Commit:** `72bf130`
