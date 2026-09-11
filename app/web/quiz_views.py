@@ -9,6 +9,7 @@ from io import BytesIO
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Count, F
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
@@ -41,12 +42,31 @@ def quiz_list(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def quiz_create(request: HttpRequest) -> HttpResponse:
+    """Create a quiz and ingest its question spreadsheet in one step (R1.1/R1.2).
+    All-or-nothing: if the file is rejected, the quiz is never persisted either —
+    the professor just fixes the file and resubmits the same form.
+    """
     form = QuizCreateForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        quiz = form.save(request.user)
-        messages.success(request, f"Quiz “{quiz.title}” created.")
-        return redirect("quiz_detail", pk=quiz.pk)
-    return render(request, "web/quiz_form.html", {"form": form, "mode": "create"})
+    file_form = QuestionUploadForm(request.POST or None, request.FILES or None)
+    result = None
+    if request.method == "POST" and form.is_valid() and file_form.is_valid():
+        upload = file_form.cleaned_data["file"]
+        quiz = None
+        with transaction.atomic():
+            quiz = form.save(request.user)
+            result = ingest_quiz(quiz, BytesIO(upload.read()))
+            if not result.ok:
+                transaction.set_rollback(True)
+        if result.ok:
+            messages.success(
+                request, f"Quiz “{quiz.title}” created with {len(result.questions)} question(s)."
+            )
+            return redirect("quiz_detail", pk=quiz.pk)
+    return render(
+        request,
+        "web/quiz_form.html",
+        {"form": form, "file_form": file_form, "mode": "create", "result": result},
+    )
 
 
 @login_required

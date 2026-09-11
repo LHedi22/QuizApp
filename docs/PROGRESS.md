@@ -2159,3 +2159,58 @@ complete (0, 1–9, 11, 12) or intentionally deferred by the spec's own text
 (10 — LLM suggestion aid, pending real evidence the review queue needs it).
 
 **Commit:** `72bf130`
+
+---
+
+# ===== Post-completion UX change — combined quiz create + upload  (2026-09-11) =====
+
+User-requested, live (app already running via `docker compose`): quiz creation
+now asks for the question spreadsheet on the same screen instead of a separate
+step reachable afterward from `quiz_detail`.
+
+**Decision point:** the user's example file, `sample_quiz.xlsx`, used
+`option_a/b/c/d` + `correct_option` (singular) — not the app's spec'd R1.2
+contract (`option_1..option_N` + `correct_options`, plural). Asked via
+`AskUserQuestion`: widen the parser to accept both header styles, or reformat
+the sample file to match the existing (tested, spec-locked) contract. **User
+chose: reformat the sample file.** `sample_quiz.xlsx` headers renamed
+in place (`option_a`→`option_1` … `option_d`→`option_4`,
+`correct_option`→`correct_options`); all 10 rows of data unchanged.
+`app/core/xlsx_ingest.py` untouched — verified `sample_quiz.xlsx` now parses
+clean (10/10 questions, zero errors) through the real `parse_workbook`.
+
+**Done:**
+- `app/web/quiz_views.py::quiz_create` — now also builds a `QuestionUploadForm`
+  and, inside one `transaction.atomic()` block, creates the quiz then calls
+  `ingest_quiz`. If ingestion fails, `transaction.set_rollback(True)` — the
+  quiz is never left behind with zero questions (extends R1.3's all-or-nothing
+  guarantee to the whole create action, not just the parse step). `N`
+  (options-per-question) is still a manual field per R1.1 — it has to be known
+  before the file can even be header-validated (`option_1..option_N`), so
+  the professor sets it and the file must match.
+- `app/web/templates/web/quiz_form.html` — create mode now also renders the
+  file field (with the same header-contract hint text as `quiz_upload.html`)
+  and, on a rejected spreadsheet, the same header/file/row error breakdown.
+  `enctype="multipart/form-data"` added for create mode.
+- `app/web/quiz_views.py::quiz_upload` (unchanged) still serves the R1.5
+  re-upload path (replacing questions after discarding all versions) —
+  reachable from `quiz_detail`'s existing "Upload / replace questions" link.
+- `tests/test_web_quiz_crud.py` — `_create` helper now always attaches a
+  valid `.xlsx` (via `make_xlsx`); renamed
+  `test_create_valid_writes_draft_and_redirects` →
+  `..._writes_draft_with_questions_and_redirects` (now also asserts
+  `quiz.questions.count() == 2`); added
+  `test_create_with_bad_spreadsheet_writes_nothing` (a bad row rolls back the
+  whole create) and `test_create_without_a_file_writes_nothing`.
+- `tests/test_e2e_happy_path.py` — merged its old separate "create quiz" +
+  "upload questions" steps into one combined `quiz_create` POST, matching the
+  new flow.
+
+**DoD proof:** `ruff check .` clean. `pytest -q` (throwaway Postgres,
+`qs-pg-test`, discarded after) → **486 passed** (484 + 2 new). The running
+`docker compose` app/worker containers were rebuilt (`docker compose
+--env-file deploy/.env -f deploy/docker-compose.yml up -d --build`) so the
+live app on `http://localhost:8010` reflects this change.
+
+**Not yet committed** — awaiting the user's go-ahead per the "never commit
+unless asked" rule.

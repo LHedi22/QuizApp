@@ -1,18 +1,28 @@
 """Phase 8.1 — quiz CRUD views, end-to-end via the Django test client.
 
-Covers: create (valid + each invalid field), owner-scoped list, foreign/missing
-pk → 404 on detail/edit/delete, config edit (cannot touch N), draft-only edit,
-draft-only delete.
+Covers: create (valid + each invalid field + a rejected spreadsheet), owner-scoped
+list, foreign/missing pk → 404 on detail/edit/delete, config edit (cannot touch N),
+draft-only edit, draft-only delete.
+
+Quiz creation and its question spreadsheet are ingested together in one request
+(R1.1/R1.2) — all-or-nothing: an invalid file leaves no quiz behind either.
 """
 
 from __future__ import annotations
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from app.core.models import Quiz
 
 pytestmark = pytest.mark.django_db
+
+_DEFAULT_ROWS = [
+    ["question_text", "option_1", "option_2", "option_3", "option_4", "correct_options", "points"],
+    ["2 + 2?", "3", "4", "5", "6", "B", ""],
+    ["Capital of France?", "London", "Paris", "Berlin", "Madrid", "B", ""],
+]
 
 
 @pytest.fixture
@@ -21,7 +31,7 @@ def client_a(client, professor):
     return client
 
 
-def _create(client, **overrides):
+def _create(client, make_xlsx, *, rows=None, file=None, **overrides):
     data = {
         "title": "Midterm",
         "options_per_question": "4",
@@ -29,16 +39,24 @@ def _create(client, **overrides):
         "default_points": "1.0",
     }
     data.update(overrides)
+    if file is None:
+        file = SimpleUploadedFile(
+            "questions.xlsx",
+            make_xlsx(rows if rows is not None else _DEFAULT_ROWS),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    data["file"] = file
     return client.post(reverse("quiz_create"), data)
 
 
-def test_create_valid_writes_draft_and_redirects(client_a, professor):
-    resp = _create(client_a, title="Midterm", negative_marking="on")
+def test_create_valid_writes_draft_with_questions_and_redirects(client_a, professor, make_xlsx):
+    resp = _create(client_a, make_xlsx, title="Midterm", negative_marking="on")
     quiz = Quiz.objects.get()
     assert quiz.professor == professor
     assert quiz.status == Quiz.Status.DRAFT
     assert quiz.options_per_question == 4
     assert quiz.negative_marking is True
+    assert quiz.questions.count() == 2
     assert resp.status_code == 302
     assert resp.url == reverse("quiz_detail", args=[quiz.pk])
 
@@ -53,9 +71,38 @@ def test_create_valid_writes_draft_and_redirects(client_a, professor):
         {"marking_mode": "bogus"},
     ],
 )
-def test_create_invalid_writes_nothing(client_a, overrides):
-    resp = _create(client_a, **overrides)
+def test_create_invalid_field_writes_nothing(client_a, make_xlsx, overrides):
+    resp = _create(client_a, make_xlsx, **overrides)
     assert resp.status_code == 200  # form re-rendered
+    assert Quiz.objects.count() == 0
+
+
+def test_create_with_bad_spreadsheet_writes_nothing(client_a, make_xlsx):
+    """A row with a wrong option count (R1.4) is rejected — the quiz is rolled
+    back too, not left behind with zero questions (R1.3's all-or-nothing extended
+    to the whole create action)."""
+    bad_rows = [
+        ["question_text", "option_1", "option_2", "option_3", "option_4", "correct_options", "points"],
+        ["Missing an option", "a", "b", "", "d", "A", ""],
+    ]
+    resp = _create(client_a, make_xlsx, rows=bad_rows)
+    assert resp.status_code == 200
+    body = resp.content.decode()
+    assert "rejected" in body
+    assert Quiz.objects.count() == 0
+
+
+def test_create_without_a_file_writes_nothing(client_a, make_xlsx):
+    resp = client_a.post(
+        reverse("quiz_create"),
+        {
+            "title": "No file",
+            "options_per_question": "4",
+            "marking_mode": Quiz.MarkingMode.PARTIAL,
+            "default_points": "1.0",
+        },
+    )
+    assert resp.status_code == 200
     assert Quiz.objects.count() == 0
 
 

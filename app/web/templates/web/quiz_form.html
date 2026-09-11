@@ -3,7 +3,7 @@
 {% block content %}
   <h1>{% if mode == "create" %}New quiz{% else %}Edit quiz configuration{% endif %}</h1>
   {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-  <form method="post">
+  <form method="post"{% if mode == "create" %} enctype="multipart/form-data"{% endif %}>
     {% csrf_token %}
     {% for field in form %}
     <div class="field">
@@ -13,7 +13,46 @@
       {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     </div>
     {% endfor %}
+    {% if mode == "create" %}
+    <div class="field">
+      <label for="{{ file_form.file.id_for_label }}">{{ file_form.file.label }}</label><br>
+      {{ file_form.file }}
+      <div class="muted">
+        Header row required: <code>question_text</code>,
+        <code>option_1</code>…<code>option_N</code> (matching "options per
+        question" above), <code>correct_options</code>, optional
+        <code>points</code>. All-or-nothing — an invalid file creates nothing.
+      </div>
+      {% if file_form.file.errors %}<ul class="errorlist">{% for e in file_form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    {% endif %}
     <button type="submit">{% if mode == "create" %}Create{% else %}Save{% endif %}</button>
     {% if mode == "edit" %}<a href="{% url 'quiz_detail' quiz.pk %}">Cancel</a>{% else %}<a href="{% url 'dashboard' %}">Cancel</a>{% endif %}
   </form>
+
+  {% if result and not result.ok %}
+  <h2>The spreadsheet was rejected — nothing was saved</h2>
+  {% if result.header_errors %}
+  <h3>Header</h3>
+  <ul class="errorlist">{% for e in result.header_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if result.file_errors %}
+  <h3>File</h3>
+  <ul class="errorlist">{% for e in result.file_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if result.row_errors %}
+  <h3>Rows</h3>
+  <table>
+    <thead><tr><th>Row</th><th>Problems</th></tr></thead>
+    <tbody>
+      {% for re in result.row_errors %}
+      <tr>
+        <td>{{ re.row }}</td>
+        <td><ul class="errorlist">{% for reason in re.reasons %}<li>{{ reason }}</li>{% endfor %}</ul></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% endif %}
 {% endblock %}
