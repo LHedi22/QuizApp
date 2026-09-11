@@ -1045,6 +1045,64 @@ its tests assert behaviour *relative to* the gate, not the gate's value.
 
 ---
 
+## phase-5.2 — perimeter detection front-end (`app/omr/detect.py`)   (2026-09-11)
+
+**Done (`cv2` + `numpy` + `qrcode` + `pyzbar` + `app.sheet_template`, no Django —
+rule 7):**
+- **Design deviation from the original plan, documented not silent:** Stage A
+  built as **4 fiducials + the QR's own 4 corners (8 points)**, not "4 fiducials +
+  3 QR finder-pattern centres (7 points)." `pyzbar`'s QR decode already does
+  finder-pattern-level detection internally; using its polygon directly beat
+  hand-rolling a 3-finder-pattern ratio scanner and gives one extra point.
+  `cv2.QRCodeDetector` was tried first and was unreliable on the real corpus (1/20,
+  and that one hit was a false positive — wrong location, empty decode);
+  `pyzbar.decode` got 20/20 correct.
+- `canonical_fiducial_corners_mm` / `canonical_qr_corners_mm(template)` — the
+  latter computed from an actual `qrcode` render (36-char UUID content → 33
+  modules, border 2) to exclude the quiet-zone the PDF renderer bakes into the QR
+  image, not guessed/hardcoded.
+- `detect_fiducials(image)` — adaptive threshold → contour filter (convex,
+  near-square, high-solidity, page-relative area band so it works across the
+  40-100%-of-frame range without per-resolution tuning) → nearest candidate to
+  each of the 4 image corners.
+- `detect_qr(image, *, top_left_fiducial_px)` — `pyzbar` decode, polygon corners
+  ordered by nearest-to-the-detected-top-left-fiducial (neither `pyzbar`'s polygon
+  order nor raw fiducial contours carry known corner identity on their own).
+  **Cross-validated against all 20 real corpus photos**: the QR centroid sits
+  ~7-8x closer to the fiducial identified as top-left than to any other (200-260px
+  vs. 1600-3700px on a ~5000px image diagonal) — real, checkable evidence the
+  corner-identity heuristic is correct, not an assumption.
+- `detect_stage_a(image, template)` — combines both; `AlignmentError
+  ('marks_not_found')` if either half fails (R5.3 clean failure, never a partial
+  guess).
+
+**DoD proof:** `pytest tests/test_omr_detect.py -q` → **26 passed**, including
+`test_stage_a_detection_on_real_corpus_capture` parametrized over **all 20 real
+`corpus/images/*.jpg`** (rule 9 — no synthetic substitute):
+1. `detect_stage_a` finds both fiducials and QR on every one of the 20 (no
+   `marks_not_found`);
+2. the decoded QR text equals that photo's label `sheet_token` on all 20 — an
+   unambiguous, ground-truth-independent correctness signal;
+3. `fit_homography_robust` on the resulting 8 points succeeds with **8/8 inliers**
+   on all 20 (provisional gate `rms_px<=12, max_px<=25, min_inliers=6`; observed
+   rms 1.3-3.0px, max 1.9-5.4px on 3024x4032-px photos — well inside the gate).
+`pytest tests/test_purity.py -q` → `app.omr` still zero-Django. `pytest -m "not
+django_db" -q` → **243 passed** (was 217). `ruff` clean.
+
+**Explicitly deferred to 5.5:** a formally-written reliability budget — 20/20 here
+is a strong real signal but 20 photos from 2 capture sessions is not the full
+"dozens... indoor lighting variety" corpus R5.2 envisioned (see the 2026-09-11
+entries above for why the corpus stopped at 20 phone-only images — user decision).
+
+**Notes / affects later phases:** 5.3 (two-stage alignment orchestration) can now
+call `detect_stage_a` directly for its Stage-A step. The R5.2 near-180° decision
+is **already made** (see `phase-5.md`'s Rule-9 section) — clean-failure only, no
+detect-and-correct path to build in 5.3.
+
+**Commit:** (recorded after this entry is committed)
+
+---
+
 # ===== PHASE 8 — Dashboard + ingestion UI  (STARTED 2026-09-10) =====
 
 **Out-of-order note.** Phases 5.2–7 are still blocked on the Phase 0.7 corpus.

@@ -146,16 +146,77 @@ relative to the gate*, not that the gate value is correct.
 
 ---
 
-## Subtasks 5.2–5.5 — BLOCKED on the Phase 0.7 corpus
+## Subtask 5.2 — Perimeter detection front-end (`app/omr/detect.py`)  ← DONE 2026-09-11
 
-Written out only so the plan is visible; **not to be started without the corpus**.
+**Goal.** Turn a captured photo into the Stage-A correspondence set (mm ↔ px point
+pairs) that `fit_homography_robust` (5.1) needs — the "image → points" half that
+5.1 explicitly deferred.
 
-- **5.2 — Perimeter detection front-end** (`app/omr/detect.py`): grayscale →
-  scale-invariant fiducial + QR-finder detection → ordered correspondence set.
-  cv2. DoD measured on the corpus.
+**Design deviation from the original plan (documented, not silent):** Stage A is
+**4 fiducials + the QR's own 4 corners (8 points)**, not "4 fiducials + 3 QR
+finder-pattern centres (7 points)" as originally sketched. `pyzbar` already does
+finder-pattern-level detection internally as part of decoding — using its returned
+QR polygon directly is more robust than hand-rolling a 3-finder-pattern ratio
+scanner, and yields one extra point. `cv2.QRCodeDetector` (tried first) was
+unreliable on real photos at this resolution — 1/20 on the corpus, and that one hit
+was a false positive. `pyzbar` decoded 20/20 correctly.
+
+**Correspondence ordering.** Neither `pyzbar`'s polygon nor the fiducial contours
+carry known corner identity by themselves. Both are resolved via nearest-corner
+heuristics (nearest detected fiducial to each image corner; nearest QR-polygon
+point to the detected top-left fiducial) — safe under the ±20° in-plane rotation
+R5.1 targets, and **cross-validated against all 20 real corpus photos**: in every
+one, the QR's centroid sits ~7-8x closer to the fiducial identified as top-left
+than to any other detected fiducial (200-260px vs. 1600-3700px, on a ~5000px image
+diagonal). A near-90°-rotated capture could break this heuristic — out of scope for
+this corpus (none exist in it) and caught downstream by the absolute fit-quality
+gate rather than silently mis-aligning (R5.3).
+
+**Deliverables.**
+- `app/omr/detect.py` (pure: `cv2`, `numpy`, `qrcode`, `pyzbar`, `app.sheet_template`
+  — no Django, rule 7):
+  - `canonical_fiducial_corners_mm(template)` / `canonical_qr_corners_mm(template)` —
+    the mm-space Stage-A targets. The QR corners are computed from the actual
+    `qrcode` render (module count 33, border 2, for the fixed-length UUID `qr_id`
+    content) to exclude the quiet-zone the PDF renderer bakes into the QR image,
+    not guessed.
+  - `detect_fiducials(image) -> (4,2) px | None` — adaptive-threshold → contour
+    filter (convex, near-square, high-solidity, page-relative area band) → nearest
+    detected candidate to each of the 4 image corners.
+  - `detect_qr(image, *, top_left_fiducial_px) -> (text, (4,2) px) | (None, None)` —
+    `pyzbar` decode, polygon ordered via nearest-to-top-left-fiducial.
+  - `detect_stage_a(image, template) -> StageACorrespondences` — combines both;
+    raises `AlignmentError('marks_not_found')` if either half fails (R5.3 clean
+    failure, never a partial guess).
+- `tests/test_omr_detect.py`: pure/structural tests (canonical-geometry math,
+  blank-image failure paths) + **`test_stage_a_detection_on_real_corpus_capture`**,
+  parametrized over all 20 real `corpus/images/*.jpg` + their labels (rule 9) — a
+  regression guard against `corpus/images` silently going empty/unlabeled.
+
+**Definition of Done (runnable, against the real corpus).**
+`pytest tests/test_omr_detect.py -q` — **26/26 pass**, including, for **all 20/20**
+real corpus photos:
+1. `detect_stage_a` finds both fiducials and QR (no `marks_not_found`).
+2. The decoded QR text equals that photo's `sheet_token` label — an
+   unambiguous, ground-truth-independent correctness signal.
+3. `fit_homography_robust` on the resulting 8 points succeeds with **all 8/8
+   inliers** (provisional gate: `rms_px<=12, max_px<=25, min_inliers=6` —
+   generous headroom; observed on the corpus was rms 1.3-3.0px, max 1.9-5.4px on
+   3024x4032-px photos).
+`pytest tests/test_purity.py -q` — `app.omr` still imports with zero
+web-framework modules.
+
+**Explicitly deferred to 5.5:** a formally-written reliability budget (this
+subtask's 20/20 is a strong real signal but 20 photos, 2 capture sessions, is not
+the full "dozens... indoor lighting variety" corpus R5.2 envisioned — see
+`docs/PROGRESS.md` 2026-09-11 for why the corpus stopped at 20 phone-only images).
+
+## Subtasks 5.3–5.5 — not yet started
+
 - **5.3 — Two-stage alignment orchestration** (`app/omr/alignment.py`): Stage A →
-  rectify → `pyzbar` decode → Stage B → `PageAlignment` or `AlignmentError`.
-  Includes the R5.2 near-180° decision.
+  rectify → decode Stage B's version-specific timing marks → `PageAlignment` or
+  `AlignmentError`. The R5.2 near-180° question is **already decided** (see the
+  Rule-9 section above) — clean-failure only, no detect-and-correct path to build.
 - **5.4 — Bubble-grid rectification**: `PageAlignment` + version → per-(question,
   option) crop boxes in the source image, within tolerance across the corpus.
 - **5.5 — Reliability budget gate** (§5 process change 2): measured alignment
@@ -165,7 +226,7 @@ Written out only so the plan is visible; **not to be started without the corpus*
 ## Phase 5 exit checklist
 
 - [x] 5.1 solver core — test_omr_geometry.py green (16), purity green, 200 non-DB tests pass
-- [ ] 5.2 perimeter detection (corpus)
+- [x] 5.2 perimeter detection — test_omr_detect.py green (26), 20/20 real corpus photos: fiducials+QR found, QR text matches label, homography fit 8/8 inliers
 - [ ] 5.3 two-stage alignment + R5.2 orientation decision (corpus)
 - [ ] 5.4 bubble-grid rectification within tolerance (corpus)
 - [ ] 5.5 reliability budget recorded + accepted (corpus)
