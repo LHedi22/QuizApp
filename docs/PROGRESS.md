@@ -2552,4 +2552,4 @@ session doesn't waste time re-diagnosing a phantom quality-check bug —
 always verify there is exactly one listener on the target port before
 trusting a "why did my last edit not show up" result on Windows.
 
-**Commit:** (pending — see next entry)
+**Commit:** `4c51467`
