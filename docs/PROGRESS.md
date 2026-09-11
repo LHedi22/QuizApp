@@ -1204,6 +1204,52 @@ noise (faint marks, a couple of already-flagged AI-transcription edge cases,
 e.g. Q7/Q8 near-adjacent-bubble-edge marks in one label's notes) — not evidence
 of misplaced crop boxes, given 0/2670 out-of-bounds and the large aggregate gap.
 
+**Commit:** 5b8899e
+
+---
+
+## phase-5.5 — reliability budget (§5 process change 2)   (2026-09-11)
+
+**Done:** measured the full `align_page` pipeline (5.1–5.4) end-to-end against
+all 20 real corpus photos and recorded the result honestly, per §5's "measured
+alignment success / clean-failure / wrong-fit rates on the corpus vs. a written
+bar" requirement:
+
+| Metric | Result |
+|---|---|
+| Alignment success rate | **20/20 = 100%** |
+| Failures, by `AlignmentError.reason` | none |
+| Stage A `rms_px` | min 1.29, mean 1.99, max 3.04 |
+| Stage A `max_px` | min 1.94, mean 3.30, max 5.39 |
+| Stage B `rms_px` | min 1.04, mean 1.59, max 2.13 |
+| Stage B `max_px` | min 2.10, mean 4.04, max 6.34 |
+| Stage-B tick match rate | 655/655 = 100% (5.3) |
+| Bubble-crop out-of-bounds rate | 0/2670 = 0% (5.4) |
+
+**The caveat, stated plainly:** this 100% is real, not cherry-picked — but it's
+measured on 20 photos from 2 capture sessions, not the "dozens... rotation to
+±20°, moderate keystone, 40-100% of frame, typical indoor lighting" diversity
+R5.2 originally called for. This corpus is light on extreme rotation, varied
+lighting (≈2 lighting setups), and small-frame-fraction captures. **100% on
+this corpus is not a claim of 100% in general** — per the user's 2026-09-11
+decisions (relaxing the corpus gate rather than capturing more), this is
+accepted as sufficient to proceed rather than blocking further phases on a
+larger corpus.
+
+**`scripts/ci.sh` — Phase 5 exit gate, run for real:** `PGPORT=5434 bash
+scripts/ci.sh` (Docker Desktop was down at session start; started it, waited
+~60s for the engine) → ruff clean, **434 passed** (full suite incl. Postgres —
+up from the 310 non-DB-only count in 5.4), clean-DB `migrate` + `migrate
+--check` green, backup/restore round-trip `RESTORE VERIFIED`, **`ALL GREEN`**.
+
+**PHASE 5 IS COMPLETE (5.1–5.5, all subtasks done and verified).**
+
+**Notes / affects later phases:** Phase 6 (bubble classifier) and Phase 7 (full
+pipeline + persistence) build directly on `align_page` / `bubble_crop_boxes`.
+Phase 6's own DoD ("expected per-submission finalize rate reported as its own
+metric," R5.5) should reuse this same honest-caveat pattern — a number from the
+real 20-photo corpus, with the corpus's narrowness stated, not hidden.
+
 **Commit:** (recorded after this entry is committed)
 
 ---
