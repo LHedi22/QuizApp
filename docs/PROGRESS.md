@@ -1158,6 +1158,52 @@ via a lookup returning `None` → `version_not_found`.
 diagnostics (`rms_px`, `max_px`, `n_inliers`) already available on every
 `PageAlignment` to build the formal writeup from.
 
+**Commit:** f8e9a7e
+
+---
+
+## phase-5.4 — bubble-grid rectification (`app/omr/crop.py`)   (2026-09-11)
+
+**Done (pure: `numpy` + `app.omr.geometry` + `app.sheet_template`, no Django —
+rule 7):**
+- `BubbleCropBox` (question, option_index, x0/y0/x1/y1 in source-image px) +
+  `width`/`height`/`center()`/`as_int_bounds()`.
+- `bubble_crop_boxes(H, template, num_questions, n_options, *, margin_mm=0.5)` —
+  for each bubble, projects the 4 corners of its mm-space footprint
+  (`bubble_diameter_mm + 2*margin_mm`, centred on the bubble) through `H` and
+  takes the axis-aligned bounding box of the result. Using the projected corners
+  (not one global px-per-mm ratio) means each box's size reflects the *local*
+  perspective scale at that point on the page.
+- `crop_mean_intensity(gray, box)` — mean grayscale value in a box, `None` if the
+  box falls even partially outside the image (a deliberately dumb summary; Phase
+  6 owns the real bubble classifier — this only exists to let 5.4's DoD check
+  crop *placement* against real ink).
+
+**DoD proof — the real accuracy signal:** if a label says a bubble was filled,
+its crop box must show up darker than the other options in the same question
+(ink vs. blank paper is a large, unambiguous contrast) — this directly tests
+whether crop coordinates land on the actual bubble, and does **not** depend on
+`marked_options` being 100% correct (AI-transcribed, flagged unverified per
+label) since a few mislabeled bubbles can't move an aggregate over hundreds of
+real crops unless the boxes themselves are wrong.
+
+`pytest tests/test_omr_crop.py -q` → **24 passed**, including across all 20 real
+corpus photos:
+1. **0/2670** bubble crop boxes fall outside the image.
+2. Marked-bubble crops average **120** grey level vs. unmarked **176** (0=black,
+   255=white) — a 56-level gap (asserted ≥30).
+3. Per-question separation (marked mean < unmarked mean − 20) holds for
+   **540/555 = 97.3%** of labeled questions (asserted ≥90%).
+`pytest tests/test_purity.py -q` → `app.omr` still zero-Django.
+`pytest -m "not django_db" -q` → **310 passed** (was 286). `ruff` clean.
+
+**Notes / affects later phases:** Phase 6 (bubble classifier) can call
+`bubble_crop_boxes` + `box.as_int_bounds()` directly to get real pixel regions
+from the source photo. The ~2.7% per-question separation misses are expected
+noise (faint marks, a couple of already-flagged AI-transcription edge cases,
+e.g. Q7/Q8 near-adjacent-bubble-edge marks in one label's notes) — not evidence
+of misplaced crop boxes, given 0/2670 out-of-bounds and the large aggregate gap.
+
 **Commit:** (recorded after this entry is committed)
 
 ---

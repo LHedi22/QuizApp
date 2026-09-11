@@ -290,12 +290,59 @@ formally-written reliability budget (5.5) — this subtask's 20/20 is real signa
 but from a 20-photo, 2-session corpus, not the fuller corpus R5.2 originally
 envisioned (see `docs/PROGRESS.md` 2026-09-11 for why).
 
-## Subtasks 5.4–5.5 — not yet started
+## Subtask 5.4 — Bubble-grid rectification (`app/omr/crop.py`)  ← DONE 2026-09-11
 
-- **5.4 — Bubble-grid rectification**: `PageAlignment` + version → per-(question,
-  option) crop boxes in the source image, within tolerance across the corpus.
-- **5.5 — Reliability budget gate** (§5 process change 2): measured alignment
-  success / clean-failure / wrong-fit rates on the corpus vs. a written bar in
+**Goal.** `PageAlignment` (5.3) + version geometry → per-(question, option) crop
+boxes in the **source image**, ready for Phase 6's bubble classifier.
+
+**Design.** Each box is the axis-aligned bounding box, in image space, of the
+bubble's mm-space footprint (`bubble_diameter_mm + 2*margin_mm`, default margin
+0.5mm) projected through `H`. Projecting the 4 footprint corners (rather than
+assuming one global px-per-mm scale for the whole page) means each box's size
+correctly reflects the *local* perspective scale/rotation at that point — no
+under/oversized boxes near the far edge of a tilted photo.
+
+**Deliverables.**
+- `app/omr/crop.py` (pure: `numpy` + `app.omr.geometry` + `app.sheet_template`,
+  no Django — rule 7): `BubbleCropBox` (question, option_index, x0/y0/x1/y1,
+  `width`/`height`/`center()`/`as_int_bounds()`), `bubble_crop_boxes(H, template,
+  num_questions, n_options, *, margin_mm=0.5) -> dict[question, list[BubbleCropBox]]`,
+  `crop_mean_intensity(gray, box) -> float | None` (a deliberately dumb mean-grey
+  summary — Phase 6 owns the real classifier; this only exists so 5.4's DoD can
+  check crop *placement*).
+- `tests/test_omr_crop.py`: pure geometry tests (identity-homography box size/
+  centring) + real-corpus DoD tests (rule 9).
+
+**Definition of Done (runnable, against the real corpus) — the real accuracy
+signal here:** if a label says a bubble was filled in pen, that crop box must
+show up darker than the other (unmarked) options in the same question — ink vs.
+blank paper is a large, unambiguous contrast, so this directly tests whether the
+crop coordinates land on the actual bubble. Does **not** depend on
+`marked_options` being 100% correct (it's AI-transcribed, flagged unverified in
+each label) — a handful of mislabeled bubbles can't move an aggregate computed
+over hundreds of real crops unless the crop boxes themselves are wrong.
+
+`pytest tests/test_omr_crop.py -q` — **24/24 pass**:
+1. **0/2670** bubble crop boxes fall outside the image, across all 20 real
+   corpus photos.
+2. Aggregate: marked-bubble crops average **120** grey level vs. unmarked
+   **176** (0=black, 255=white) — a 56-level gap (asserted ≥30).
+3. Per-question separation (marked mean < unmarked mean − 20) holds for
+   **540/555 = 97.3%** of labeled questions across the corpus (asserted ≥90%).
+`pytest tests/test_purity.py -q` — `app.omr` still zero-Django.
+`pytest -m "not django_db" -q` → **310 passed** (was 286). `ruff` clean.
+
+**Notes / affects later phases:** Phase 6 (bubble classifier) can call
+`bubble_crop_boxes` directly and crop real pixel regions from the source photo
+via `box.as_int_bounds()`. The ~2.7% per-question separation misses are expected
+noise (faint pen marks, a couple of AI-transcription slips already flagged in
+label notes, e.g. Q7/Q8 near-adjacent-edge marks) — not evidence of misplaced
+crop boxes, given the 0/2670 out-of-bounds result and the large aggregate gap.
+
+## Subtask 5.5 — not yet started
+
+- **Reliability budget gate** (§5 process change 2): measured alignment success /
+  clean-failure / wrong-fit rates on the corpus vs. a written bar in
   PROGRESS.md; a shortfall is documented and user-accepted, not worked around.
 
 ## Phase 5 exit checklist
@@ -303,6 +350,6 @@ envisioned (see `docs/PROGRESS.md` 2026-09-11 for why).
 - [x] 5.1 solver core — test_omr_geometry.py green (16), purity green, 200 non-DB tests pass
 - [x] 5.2 perimeter detection — test_omr_detect.py green (26), 20/20 real corpus photos: fiducials+QR found, QR text matches label, homography fit 8/8 inliers
 - [x] 5.3 two-stage alignment — test_omr_alignment.py green (43), 20/20 real corpus photos: PageAlignment correct, Stage B >=90% ticks matched, rms within gate, Stage B not worse than Stage A. R5.2 orientation decision already made (clean-failure only).
-- [ ] 5.4 bubble-grid rectification within tolerance (corpus)
+- [x] 5.4 bubble-grid rectification — test_omr_crop.py green (24), 0/2670 crop boxes out of bounds, marked bubbles 56 grey-levels darker than unmarked on average (97.3% per-question separation) across all 20 real corpus photos.
 - [ ] 5.5 reliability budget recorded + accepted (corpus)
 - [ ] `scripts/ci.sh` green
