@@ -2367,3 +2367,189 @@ claims that no longer matched reality:
 `corpus/labels/SCHEMA.md`: all already accurate, no changes needed there.
 
 **Commit:** `f38ff06`
+
+---
+
+# ===== In-browser camera capture for scan upload (R4.1/R4.2/R4.3)  (2026-09-11) =====
+
+User asked for the second half of R4.1(a) — the file-picker upload path
+(`submission_upload` / `SubmissionPhotoUploadForm`) was built in Phase 7.2;
+in-browser camera capture was not. Built it into the *same* single-photo
+upload path — no new server code path, per the task's explicit non-goal.
+`submission_upload_batch` and the OMR/alignment pipeline were not touched.
+
+**What was built:**
+- `app/web/static/web/quality_check.js` — pure, dual Node/browser module for
+  the R4.2 local quality pre-check: Laplacian-variance blur estimate
+  (R8.3's own suggested heuristic) + a real client-side QR decode via
+  **jsQR** (vendored at `app/web/static/web/vendor/jsQR.js`, unpkg
+  `jsqr@1.4.0` UMD build — R8.3 explicitly names a client-side library like
+  jsQR as an acceptable local heuristic; an LLM call is not). No network
+  call, no LLM anywhere in this file.
+- `app/web/static/web/camera_capture.js` — the capture UI: feature-detects
+  `getUserMedia`, requests the rear camera (`facingMode: {ideal:
+  "environment"}`, falling back to any camera), live `<video>` preview,
+  capture-to-canvas, runs the quality check, retake/use-this-photo flow,
+  feeds the accepted still into the *existing* `photo-image` file input via
+  `DataTransfer` and a native form submit (not fetch — see rationale
+  below), and R4.3 offline/unreachable handling (persistent banner, camera
+  control disabled, file picker left alone) via `navigator.onLine` +
+  polling `/healthz`.
+- `app/web/templates/web/submission_upload.html` — camera capture UI added
+  inside the existing "One photo" form, above the untouched file `<input>`.
+- `app/web/static/web/app.css` — small `.camera-*` styling additions.
+- `tests/test_web_scan_upload.py` — one new test,
+  `test_photo_upload_accepts_camera_sourced_blob_same_as_file_picker`
+  (posts a `SimpleUploadedFile` named `camera-capture.jpg` — what
+  `camera_capture.js`'s `canvas.toBlob → File` actually produces — through
+  the same view/field as the file-picker tests). **This is the only
+  backend test camera capture needs**, as anticipated: the server receives
+  an ordinary multipart file either way and cannot tell a camera capture
+  from a file-picker upload, so `SubmissionPhotoUploadForm`/`submission_upload`
+  required zero production-code changes. `test_upload_page_renders_both_forms`
+  extended to assert the camera markup and both new `<script>` tags render.
+  All prior tests in this file are otherwise untouched.
+- `tests/js/quality_check.test.js` + `tests/js/fixtures/qr_frame.{rgba,json}`
+  — Node built-in test runner (`node --test`, no npm deps, no build step)
+  unit tests for the quality-check logic against synthetic canvas data: a
+  sharp fixture (a *real* jsQR-decodable QR code generated with the
+  project's own `qrcode` + Pillow, composited with a checkerboard block,
+  not a hand-drawn approximation) must pass both checks; the *same* fixture
+  box-blurred by the test itself must fail; a blank frame and an
+  undersized frame must report no plausible QR. 5/5 pass — see command
+  output below. `scripts/ci.sh` gained a `node --test` step.
+
+**Why jsQR instead of a hand-rolled heuristic (a real calibration finding,
+not a guess):** a first pass implemented "is a QR plausibly in frame" as a
+hand-rolled scan for the classic QR finder 1:1:3:1:1 dark:light run-length
+ratio along sample scanlines — cheap, dependency-free, and what R4.2's
+"fast local heuristic" wording suggested first. It was calibrated against
+**real corpus photos** (not synthetic patterns) by pushing them through a
+real dev server + a real (non-headless) Chromium instance via
+`--use-fake-device-for-media-stream` fed a `.y4m` built from
+`corpus/images/*.jpg`, and separately via direct Node calibration sweeps
+against PIL-downsampled real corpus frames. Findings:
+  - At the original 480px downsample width, the heuristic reliably *missed*
+    a real, correctly-printed QR (the QR occupies ~11% of the sheet width —
+    `config/sheet_template.json`'s `answer_sheet.geometry.qr.size_mm: 24`
+    on a 210mm page — so at 480px the QR itself is only ~55px, too coarse
+    for a 1:1:3:1:1 ratio scan to resolve reliably).
+  - Raising the downsample width and loosening `minHits`/`sampleLines`
+    fixed detection on *one* corpus photo but then produced **false
+    positives**: masking out the actual QR region of a real photo and
+    re-running the check still reported "QR plausible," because dense
+    printed content elsewhere on the sheet (the bubble grid) satisfies the
+    same run-length ratio by coincidence. The check had become almost
+    meaningless — a bad trade for a real quality gate.
+  - Switching to jsQR (an actual decode attempt, not a plausibility guess)
+    fixed both problems at once: it reliably decoded real corpus QR codes
+    at a downsample width of ~700-800px and up (chosen default: **1000px**,
+    for margin), reliably returned `null` on the QR-masked and blank
+    frames (no false positives), and is exactly what R8.3's own text
+    names as an acceptable local library. Kept the Laplacian-variance blur
+    check as originally designed — it behaved correctly throughout
+    (`blurry: false` on every sharp real photo tested).
+  This is the "judgement call, not a stop-and-ask item" flagged in the
+  task — R4.2 threshold calibration isn't scoring formula / data model /
+  sheet geometry, so proceeding with the above (documented) reasoning
+  rather than blocking, per CLAUDE.md #5.
+
+**Why a native form submit, not `fetch`, for the upload step:** R4.3 asks
+for "not submitted — retry" on a failed upload, which could suggest an
+AJAX upload with custom error handling. Rejected in favor of literally
+reusing the file-picker's own native `<form>` submit (via a hidden-input +
+`DataTransfer` swap) for two reasons: (1) it is the only way to guarantee
+zero server-side divergence between the two capture paths — a second,
+fetch-based upload path is exactly the "second server-side code path" the
+task said not to build; (2) `fetch`-following-a-redirect double-consumes
+Django's session-based `messages` (the FAILED-submission error message
+would be read and cleared by the fetch's own redirect-following request,
+then missing when the browser actually navigates there), which would
+regress the existing FAILED-upload UX Phase 7.2 already built. Instead:
+`camera_capture.js` re-checks `navigator.onLine`/reachability immediately
+before submitting and, if already known-bad, blocks the submit and shows
+"Not submitted — you're offline or the server is unreachable. Retry when
+back online." without navigating (the captured still stays on screen, so
+clicking "Use this photo" again *is* the retry). A genuine network drop
+mid-POST (the browser already committed to the request) shows the
+browser's own offline error page — this is symmetric with the file-picker
+path's pre-existing behavior (it was never AJAX either), so it is not a
+regression, and the underlying guarantee ("never counted as processed")
+holds structurally: no `Submission` row is created unless the request
+actually completes server-side.
+
+**DoD proof:**
+```
+$ .venv/Scripts/python.exe -m ruff check .
+All checks passed!
+
+$ bash scripts/ci.sh   (podman/docker Postgres, full suite)
+== lint (ruff) ==            All checks passed!
+== tests (pytest) ==         492 passed in 230.52s
+== client-side quality-check tests (node --test) ==
+  ok 1 - laplacianVariance is zero on a flat, featureless frame
+  ok 2 - sharp frame with a real embedded QR code passes both checks
+  ok 3 - heavily blurred version of the same frame fails the quality check
+  ok 4 - a blank uniform frame has no plausible QR (nothing for jsQR to decode)
+  ok 5 - qrPlausible declines to run on frames too small to hold a finder pattern
+  # pass 5  # fail 0
+== clean-DB migration (fresh database -> head) ==   OK (all migrations apply)
+== backup / restore round-trip (R8.2) ==            RESTORE VERIFIED
+ALL GREEN
+```
+(492 = the pre-existing 491 (`e80fb47`) + 1 new backend test; camera
+capture needed no other backend test changes, as predicted above.)
+
+**Manual verification (real browser, not headless — CLAUDE.md #9):** ran a
+throwaway dev server (`manage.py runserver`, real Postgres container) and
+drove it with Playwright's Chromium in **headed** mode
+(`headless=False`), camera permission auto-granted, video fed from
+`--use-file-for-fake-video-capture=<a real corpus photo, ffmpeg'd to
+.y4m>` — this is the standard way to exercise `getUserMedia` end-to-end
+without physical camera hardware, not a synthetic image per CLAUDE.md #9's
+sense (the *source* is a real captured, hand-labeled corpus photo of a
+really-printed sheet, same corpus Phase 5 uses).
+  - Live preview renders at the real feed resolution (`1000x1334`),
+    capture button works.
+  - Capture → quality check runs for real (not mocked) → `"Looks good —
+    sharp, and a page/QR is plausibly in frame."` (green) for a good real
+    photo.
+  - "Use this photo" → real native form submit → **landed on
+    `/submissions/<id>/`** (submission_detail) — status came back `Needs
+    Review` (one deliberately-included corpus page has a genuine
+    double-mark on one question; this is correct, unrelated pipeline
+    behavior, not a camera-capture defect — the DoD's own text accepts
+    either the finalized *or* the FAILED/flagged path as success here).
+  - Retake flow verified separately (captured a frame that the check
+    failed on an earlier calibration pass): "Retake" correctly discarded
+    the bad still and resumed the live preview without re-requesting
+    camera permission.
+  - R4.3 offline/unreachable banner verified in a dedicated headed-browser
+    run: `context.set_offline(True)` → persistent banner text shown,
+    `#camera-start-btn` becomes `disabled`, **the file `<input>` stays
+    enabled** (the file-vs-camera distinction the task asked for, "if
+    cheap" — it was); going back online clears the banner and re-enables
+    the camera button via the same health-check path.
+  - Graceful degradation (no camera / `getUserMedia` unsupported /
+    permission denied) is implemented (`app/web/static/web/camera_capture.js`
+    hides `#camera-capture` entirely and falls back to the file picker) but
+    not separately screenshotted — it's a straightforward feature-detect
+    branch, lower risk than the paths above.
+
+**Process note (manual-testing environment only, not a code bug):** during
+this verification, `pkill -f "manage.py runserver"` silently failed to
+kill an already-running background dev server on Windows/git-bash (POSIX
+`pkill` doesn't reliably map onto the actual Windows process here); a
+second `runserver` then bound the *same* port alongside the still-alive
+first one, and requests were nondeterministically served by whichever
+process's socket answered — served stale template content (missing the
+just-added `<script>` tag) roughly half the time with **no error**,
+which is what actually caused the first two "quality check fails on a
+real photo" observations before jsQR was even in the picture. Found via
+`netstat -ano` showing two `LISTENING` entries on the same port; fixed
+with `taskkill //PID <winpid> //F` on both. Noting this so a future
+session doesn't waste time re-diagnosing a phantom quality-check bug —
+always verify there is exactly one listener on the target port before
+trusting a "why did my last edit not show up" result on Windows.
+
+**Commit:** (pending — see next entry)

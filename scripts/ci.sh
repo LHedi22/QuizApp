@@ -41,6 +41,10 @@ echo "== tests (pytest) =="
 "$PYTHON" -m pytest -q
 
 echo
+echo "== client-side quality-check tests (node --test) =="
+node --test
+
+echo
 echo "== clean-DB migration (fresh database -> head) =="
 docker exec "$CONTAINER" psql -U quizscan -d quizscan -c "DROP DATABASE IF EXISTS ci_fresh;" >/dev/null
 docker exec "$CONTAINER" psql -U quizscan -d quizscan -c "CREATE DATABASE ci_fresh;" >/dev/null

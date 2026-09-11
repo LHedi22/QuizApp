@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Scan submissions — {{ version.quiz.title }} v{{ version.version_number }}{% endblock %}
 {% block content %}
   <p class="muted"><a href="{% url 'quiz_detail' version.quiz_id %}">&larr; {{ version.quiz.title }}</a></p>
@@ -10,14 +11,42 @@
   </p>
 
   <h2>One photo</h2>
-  <form method="post" enctype="multipart/form-data" action="{% url 'submission_upload' version.pk %}">
+  <div id="camera-banner" class="camera-banner" hidden></div>
+  <form method="post" enctype="multipart/form-data" action="{% url 'submission_upload' version.pk %}" id="photo-upload-form">
     {% csrf_token %}
+
+    <div id="camera-capture" class="camera-capture">
+      <button type="button" id="camera-start-btn">Use camera</button>
+
+      <div id="camera-live" hidden>
+        <video id="camera-video" autoplay playsinline muted></video>
+        <div class="camera-controls">
+          <button type="button" id="camera-shot-btn">Capture</button>
+          <button type="button" id="camera-cancel-btn">Cancel</button>
+        </div>
+      </div>
+
+      <div id="camera-review" hidden>
+        <canvas id="camera-still-canvas"></canvas>
+        <p id="camera-quality-msg" class="camera-quality-msg"></p>
+        <div class="camera-controls">
+          <button type="button" id="camera-use-btn" hidden>Use this photo</button>
+          <button type="button" id="camera-retake-btn">Retake</button>
+        </div>
+      </div>
+
+      <p id="camera-status" class="camera-status" hidden></p>
+    </div>
+
+    <p class="muted">— or —</p>
+
     <div class="field">
       {{ photo_form.image }}
       {% if photo_form.image.errors %}<ul class="errorlist">{% for e in photo_form.image.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     </div>
     <button type="submit">Upload &amp; scan</button>
   </form>
+  <canvas id="camera-capture-canvas" hidden></canvas>
 
   <h2>Batch PDF</h2>
   <p class="muted">One page per sheet. Each page is scored independently — a bad page never fails the rest of the batch.</p>
@@ -29,4 +58,14 @@
     </div>
     <button type="submit">Upload &amp; scan batch</button>
   </form>
+
+  <script src="{% static 'web/vendor/jsQR.js' %}"></script>
+  <script src="{% static 'web/quality_check.js' %}"></script>
+  <script
+    src="{% static 'web/camera_capture.js' %}"
+    data-file-input-id="id_photo-image"
+    data-form-id="photo-upload-form"
+    data-health-url="{% url 'healthz' %}"
+    defer
+  ></script>
 {% endblock %}

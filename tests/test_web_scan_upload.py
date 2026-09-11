@@ -59,6 +59,11 @@ def test_upload_page_renders_both_forms(client_a, make_quiz, professor, make_ver
     body = client_a.get(reverse("submission_upload", args=[version.pk])).content.decode()
     assert "Upload &amp; scan" in body
     assert "Upload &amp; scan batch" in body
+    # R4.1(a) camera capture UI is present alongside the file picker.
+    assert 'id="camera-video"' in body
+    assert 'id="camera-start-btn"' in body
+    assert 'src="/static/web/quality_check.js"' in body
+    assert 'src="/static/web/camera_capture.js"' in body
 
 
 def test_photo_upload_success_redirects_to_submission_detail(client_a, corpus_version):
@@ -66,6 +71,31 @@ def test_photo_upload_success_redirects_to_submission_detail(client_a, corpus_ve
     from django.core.files.uploadedfile import SimpleUploadedFile
 
     upload = SimpleUploadedFile("sheet.jpg", image_bytes, content_type="image/jpeg")
+    resp = client_a.post(
+        reverse("submission_upload", args=[version.pk]),
+        {"photo-image": upload},
+    )
+    assert resp.status_code == 302
+    submission = Submission.objects.get(version=version)
+    assert resp.url == reverse("submission_detail", args=[submission.pk])
+    assert submission.status in (Submission.Status.FINALIZED, Submission.Status.NEEDS_REVIEW)
+
+
+def test_photo_upload_accepts_camera_sourced_blob_same_as_file_picker(client_a, corpus_version):
+    """R4.1(a): in-browser camera capture feeds the *same* `photo-image` field
+    through the *same* view as the file-picker path (camera_capture.js builds
+    a `File` from a canvas `Blob` and posts it via the existing form's hidden
+    input). The server has no way to distinguish a camera-sourced upload from
+    a file-picker one — both arrive as an ordinary multipart file — so this
+    is the only server-side coverage a camera-specific upload needs; the rest
+    of R4.1(a)/R4.2/R4.3 is client-side capture/quality-check/connectivity UX
+    covered by tests/js/quality_check.test.js and manual verification."""
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    version, image_bytes = corpus_version
+    # Same bytes as the file-picker test, but the filename/content-type a
+    # canvas.toBlob(..., "image/jpeg") -> File(...) capture actually produces.
+    upload = SimpleUploadedFile("camera-capture.jpg", image_bytes, content_type="image/jpeg")
     resp = client_a.post(
         reverse("submission_upload", args=[version.pk]),
         {"photo-image": upload},
