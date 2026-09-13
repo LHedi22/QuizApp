@@ -1,79 +1,113 @@
 {% extends "base.html" %}
 {% block title %}{{ quiz.title }}{% endblock %}
 {% block content %}
-  <p class="muted"><a href="{% url 'dashboard' %}">&larr; Quizzes</a></p>
-  <h1>{{ quiz.title }} <span class="badge">{{ quiz.get_status_display }}</span></h1>
-  <p>
-    <a href="{% url 'quiz_results' quiz.pk %}">View results &rarr;</a> ·
-    <a href="{% url 'quiz_roster' quiz.pk %}">Roster ({{ quiz.roster_entries.count }})</a>
-  </p>
+  <p class="mb-2 text-sm text-gray-500"><a href="{% url 'dashboard' %}">&larr; Quizzes</a></p>
 
-  <h2>Configuration</h2>
-  <table>
-    <tr><th>Options per question</th><td>{{ quiz.options_per_question }}</td></tr>
-    <tr><th>Marking mode</th><td>{{ quiz.get_marking_mode_display }}</td></tr>
-    <tr><th>Negative marking</th><td>{{ quiz.negative_marking|yesno }}</td></tr>
-    <tr><th>Default points</th><td>{{ quiz.default_points }}</td></tr>
-  </table>
-  {% if can_edit %}
-    <p>
-      <a href="{% url 'quiz_edit' quiz.pk %}">Edit configuration</a> ·
-      <a href="{% url 'quiz_delete' quiz.pk %}">Delete quiz</a>
-    </p>
-  {% else %}
-    <p class="muted">Configuration is frozen — versions exist.</p>
-  {% endif %}
+  <div class="mb-6 flex flex-wrap items-center gap-3">
+    <h1 class="mb-0">{{ quiz.title }}</h1>
+    {% if quiz.status == "draft" %}<span class="badge-neutral">Draft</span>
+    {% elif quiz.status == "versioned" %}<span class="badge-primary">Versioned</span>
+    {% else %}<span class="badge-accent">Printed</span>{% endif %}
+  </div>
+
+  <div class="mb-8 flex flex-wrap gap-4 text-sm">
+    <a href="{% url 'quiz_results' quiz.pk %}" class="font-medium text-primary hover:text-primary-hover">View results &rarr;</a>
+    <span class="text-gray-300">·</span>
+    <a href="{% url 'quiz_roster' quiz.pk %}" class="font-medium text-primary hover:text-primary-hover">Roster ({{ quiz.roster_entries.count }})</a>
+  </div>
+
+  <div class="card mb-8">
+    <h2 class="mt-0">Configuration</h2>
+    <dl class="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+      <div class="flex justify-between border-b border-gray-100 pb-2 sm:justify-start sm:gap-2">
+        <dt class="text-gray-500">Options per question</dt><dd class="font-medium">{{ quiz.options_per_question }}</dd>
+      </div>
+      <div class="flex justify-between border-b border-gray-100 pb-2 sm:justify-start sm:gap-2">
+        <dt class="text-gray-500">Marking mode</dt><dd class="font-medium">{{ quiz.get_marking_mode_display }}</dd>
+      </div>
+      <div class="flex justify-between border-b border-gray-100 pb-2 sm:justify-start sm:gap-2">
+        <dt class="text-gray-500">Negative marking</dt><dd class="font-medium">{{ quiz.negative_marking|yesno }}</dd>
+      </div>
+      <div class="flex justify-between pb-2 sm:justify-start sm:gap-2">
+        <dt class="text-gray-500">Default points</dt><dd class="font-medium">{{ quiz.default_points }}</dd>
+      </div>
+    </dl>
+    {% if can_edit %}
+    <div class="mt-5 flex gap-3">
+      <a href="{% url 'quiz_edit' quiz.pk %}" class="btn-secondary btn-sm">Edit configuration</a>
+      <a href="{% url 'quiz_delete' quiz.pk %}" class="btn-ghost btn-sm text-danger hover:bg-danger-tint">Delete quiz</a>
+    </div>
+    {% else %}
+    <p class="mt-4 text-sm text-gray-500">Configuration is frozen — versions exist.</p>
+    {% endif %}
+  </div>
 
   <h2>Questions ({{ questions|length }})</h2>
-  {% if can_edit %}<p><a href="{% url 'quiz_upload' quiz.pk %}">Upload / replace questions (.xlsx)</a></p>{% endif %}
+  {% if can_edit %}<p class="mb-3"><a href="{% url 'quiz_upload' quiz.pk %}" class="text-sm font-medium text-primary hover:text-primary-hover">Upload / replace questions (.xlsx)</a></p>{% endif %}
   {% if questions %}
-  <ol>
-    {% for q in questions %}<li>{{ q.text|truncatechars:90 }} <span class="muted">[{{ q.correct_options|join:"," }}]</span></li>{% endfor %}
+  <ol class="table-wrap list-decimal space-y-0 divide-y divide-gray-100 bg-white pl-9 pr-4 text-sm marker:text-gray-400">
+    {% for q in questions %}
+    <li class="py-2.5">
+      {{ q.text|truncatechars:90 }}
+      <span class="text-gray-400">[{{ q.correct_options|join:"," }}]</span>
+    </li>
+    {% endfor %}
   </ol>
   {% else %}
-  <p class="muted">No questions ingested yet.</p>
+  <div class="empty-state">No questions ingested yet.</div>
   {% endif %}
 
   <h2>Versions ({{ versions|length }})</h2>
   {% if can_generate %}
-  <form method="post" action="{% url 'version_generate' quiz.pk %}">
+  <form method="post" action="{% url 'version_generate' quiz.pk %}" class="mb-4 flex flex-wrap items-end gap-3">
     {% csrf_token %}
-    <label for="{{ version_form.m.id_for_label }}">Generate</label>
-    {{ version_form.m }} versions
-    <button type="submit">Generate</button>
+    <div>
+      <label for="{{ version_form.m.id_for_label }}" class="field-label">Generate</label>
+      <div class="flex items-center gap-2">
+        {{ version_form.m }}
+        <span class="text-sm text-gray-500">versions</span>
+      </div>
+    </div>
+    <button type="submit" class="btn-primary">Generate</button>
   </form>
   {% elif can_edit %}
-  <p class="muted">Add questions before generating versions.</p>
+  <p class="mb-4 text-sm text-gray-500">Add questions before generating versions.</p>
   {% endif %}
   {% if versions %}
-  <table>
-    <thead><tr><th>#</th><th>QR id</th><th>Template</th><th>PDFs</th><th></th></tr></thead>
-    <tbody>
-      {% for v in versions %}
-      <tr>
-        <td>{{ v.version_number }}</td>
-        <td class="muted">{{ v.qr_id }}</td>
-        <td>{{ v.template_version }}</td>
-        <td>
-          <a href="{% url 'version_pdf' v.pk 'answer_sheet' %}">answer sheet</a> ·
-          <a href="{% url 'version_pdf' v.pk 'question_paper' %}">question paper</a> ·
-          <a href="{% url 'submission_upload' v.pk %}">scan submissions</a>
-        </td>
-        <td>
-          {% if v.anticluster_fallback %}<span class="badge">anti-cluster fallback</span>{% endif %}
-          {% if v.printed_at %}
-            <span class="badge">printed {{ v.printed_at|date:"Y-m-d" }}</span>
-          {% else %}
-            <form class="inline" method="post" action="{% url 'version_mark_printed' v.pk %}">
-              {% csrf_token %}<button type="submit">mark printed</button>
-            </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>#</th><th>QR id</th><th>Template</th><th>PDFs</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for v in versions %}
+        <tr>
+          <td>{{ v.version_number }}</td>
+          <td class="text-gray-500">{{ v.qr_id }}</td>
+          <td>{{ v.template_version }}</td>
+          <td>
+            <div class="flex flex-wrap gap-x-3 gap-y-1">
+              <a href="{% url 'version_pdf' v.pk 'answer_sheet' %}" class="text-primary hover:text-primary-hover">answer sheet</a>
+              <a href="{% url 'version_pdf' v.pk 'question_paper' %}" class="text-primary hover:text-primary-hover">question paper</a>
+              <a href="{% url 'submission_upload' v.pk %}" class="text-primary hover:text-primary-hover">scan submissions</a>
+            </div>
+          </td>
+          <td>
+            <div class="flex flex-wrap items-center gap-2">
+              {% if v.anticluster_fallback %}<span class="badge-warning">anti-cluster fallback</span>{% endif %}
+              {% if v.printed_at %}
+                <span class="badge-accent">printed {{ v.printed_at|date:"Y-m-d" }}</span>
+              {% else %}
+                <form method="post" action="{% url 'version_mark_printed' v.pk %}">
+                  {% csrf_token %}<button type="submit" class="btn-secondary btn-sm">mark printed</button>
+                </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="muted">No versions generated yet.</p>
+  <div class="empty-state">No versions generated yet.</div>
   {% endif %}
 {% endblock %}

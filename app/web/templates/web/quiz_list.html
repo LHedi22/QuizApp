@@ -1,27 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Quizzes{% endblock %}
 {% block content %}
-  <h1>Quizzes</h1>
-  <p><a href="{% url 'quiz_create' %}">+ New quiz</a></p>
+  <div class="mb-6 flex items-center justify-between">
+    <h1>Quizzes</h1>
+    <a href="{% url 'quiz_create' %}" class="btn-primary">+ New quiz</a>
+  </div>
+
   {% if quizzes %}
-  <table>
-    <thead>
-      <tr><th>Title</th><th>N</th><th>Status</th><th>Questions</th><th>Versions</th><th>Created</th></tr>
-    </thead>
-    <tbody>
-      {% for quiz in quizzes %}
-      <tr>
-        <td><a href="{% url 'quiz_detail' quiz.pk %}">{{ quiz.title }}</a></td>
-        <td>{{ quiz.options_per_question }}</td>
-        <td>{{ quiz.get_status_display }}</td>
-        <td>{{ quiz.num_questions }}</td>
-        <td>{{ quiz.num_versions }}</td>
-        <td class="muted">{{ quiz.created_at|date:"Y-m-d H:i" }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Title</th><th>Options</th><th>Status</th><th>Questions</th><th>Versions</th><th>Created</th></tr>
+      </thead>
+      <tbody>
+        {% for quiz in quizzes %}
+        <tr>
+          <td><a href="{% url 'quiz_detail' quiz.pk %}" class="font-medium text-gray-900 hover:text-primary">{{ quiz.title }}</a></td>
+          <td>{{ quiz.options_per_question }}</td>
+          <td>
+            {% if quiz.status == "draft" %}<span class="badge-neutral">Draft</span>
+            {% elif quiz.status == "versioned" %}<span class="badge-primary">Versioned</span>
+            {% else %}<span class="badge-accent">Printed</span>{% endif %}
+          </td>
+          <td>{{ quiz.num_questions }}</td>
+          <td>{{ quiz.num_versions }}</td>
+          <td class="text-gray-500">{{ quiz.created_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="muted">No quizzes yet.</p>
+  <div class="empty-state">
+    <p>No quizzes yet.</p>
+    <a href="{% url 'quiz_create' %}" class="btn-primary mt-4 inline-flex">+ New quiz</a>
+  </div>
   {% endif %}
 {% endblock %}

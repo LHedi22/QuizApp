@@ -2,59 +2,68 @@
 {% block title %}{% if mode == "create" %}New quiz{% else %}Edit {{ quiz.title }}{% endif %}{% endblock %}
 {% block content %}
   <h1>{% if mode == "create" %}New quiz{% else %}Edit quiz configuration{% endif %}</h1>
-  {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-  <form method="post"{% if mode == "create" %} enctype="multipart/form-data"{% endif %}>
-    {% csrf_token %}
-    {% for field in form %}
-    <div class="field">
-      <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
-      {{ field }}
-      {% if field.help_text %}<div class="muted">{{ field.help_text }}</div>{% endif %}
-      {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-    </div>
-    {% endfor %}
-    {% if mode == "create" %}
-    <div class="field">
-      <label for="{{ file_form.file.id_for_label }}">{{ file_form.file.label }}</label><br>
-      {{ file_form.file }}
-      <div class="muted">
-        Header row required: <code>question_text</code>,
-        <code>option_1</code>…<code>option_N</code>, <code>correct_options</code>,
-        optional <code>points</code>. The number of <code>option_</code>
-        columns (2–6) sets this quiz's options-per-question automatically —
-        no need to choose it separately. All-or-nothing — an invalid file
-        creates nothing.
+
+  <div class="card mt-4 max-w-2xl">
+    {% if form.non_field_errors %}<ul class="errorlist mb-4">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <form method="post"{% if mode == "create" %} enctype="multipart/form-data"{% endif %}>
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}" class="field-label">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="field-help">{{ field.help_text }}</div>{% endif %}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
-      {% if file_form.file.errors %}<ul class="errorlist">{% for e in file_form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-    </div>
-    {% endif %}
-    <button type="submit">{% if mode == "create" %}Create{% else %}Save{% endif %}</button>
-    {% if mode == "edit" %}<a href="{% url 'quiz_detail' quiz.pk %}">Cancel</a>{% else %}<a href="{% url 'dashboard' %}">Cancel</a>{% endif %}
-  </form>
+      {% endfor %}
+      {% if mode == "create" %}
+      <div class="field">
+        <label for="{{ file_form.file.id_for_label }}" class="field-label">{{ file_form.file.label }}</label>
+        {{ file_form.file }}
+        <div class="field-help">
+          Header row required: <code>question_text</code>,
+          <code>option_1</code>…<code>option_N</code>, <code>correct_options</code>,
+          optional <code>points</code>. The number of <code>option_</code>
+          columns (2–6) sets this quiz's options-per-question automatically —
+          no need to choose it separately. All-or-nothing — an invalid file
+          creates nothing.
+        </div>
+        {% if file_form.file.errors %}<ul class="errorlist">{% for e in file_form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      {% endif %}
+      <div class="mt-6 flex items-center gap-3">
+        <button type="submit" class="btn-primary">{% if mode == "create" %}Create{% else %}Save{% endif %}</button>
+        {% if mode == "edit" %}<a href="{% url 'quiz_detail' quiz.pk %}" class="btn-ghost">Cancel</a>{% else %}<a href="{% url 'dashboard' %}" class="btn-ghost">Cancel</a>{% endif %}
+      </div>
+    </form>
+  </div>
 
   {% if result and not result.ok %}
-  <h2>The spreadsheet was rejected — nothing was saved</h2>
-  {% if result.header_errors %}
-  <h3>Header</h3>
-  <ul class="errorlist">{% for e in result.header_errors %}<li>{{ e }}</li>{% endfor %}</ul>
-  {% endif %}
-  {% if result.file_errors %}
-  <h3>File</h3>
-  <ul class="errorlist">{% for e in result.file_errors %}<li>{{ e }}</li>{% endfor %}</ul>
-  {% endif %}
-  {% if result.row_errors %}
-  <h3>Rows</h3>
-  <table>
-    <thead><tr><th>Row</th><th>Problems</th></tr></thead>
-    <tbody>
-      {% for re in result.row_errors %}
-      <tr>
-        <td>{{ re.row }}</td>
-        <td><ul class="errorlist">{% for reason in re.reasons %}<li>{{ reason }}</li>{% endfor %}</ul></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
+  <div class="card mt-6 border-danger/30">
+    <h2 class="mt-0 text-danger">The spreadsheet was rejected — nothing was saved</h2>
+    {% if result.header_errors %}
+    <h3>Header</h3>
+    <ul class="errorlist">{% for e in result.header_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if result.file_errors %}
+    <h3>File</h3>
+    <ul class="errorlist">{% for e in result.file_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if result.row_errors %}
+    <h3>Rows</h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Row</th><th>Problems</th></tr></thead>
+        <tbody>
+          {% for re in result.row_errors %}
+          <tr>
+            <td>{{ re.row }}</td>
+            <td><ul class="errorlist">{% for reason in re.reasons %}<li>{{ reason }}</li>{% endfor %}</ul></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
   {% endif %}
 {% endblock %}
