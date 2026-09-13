@@ -1,90 +1,114 @@
 {% extends "base.html" %}
 {% block title %}Submission #{{ submission.pk }}{% endblock %}
 {% block content %}
-  <p class="muted"><a href="{% url 'quiz_results' quiz.pk %}">&larr; {{ quiz.title }} results</a></p>
-  <h1>Submission #{{ submission.pk }}
-    <span class="badge">{{ submission.get_status_display }}</span></h1>
-  <p class="muted">
+  <p class="mb-2 text-sm text-gray-500"><a href="{% url 'quiz_results' quiz.pk %}">&larr; {{ quiz.title }} results</a></p>
+
+  <div class="mb-2 flex flex-wrap items-center gap-3">
+    <h1 class="mb-0">Submission #{{ submission.pk }}</h1>
+    {% if submission.status == "finalized" %}<span class="badge-success">{{ submission.get_status_display }}</span>
+    {% elif submission.status == "needs_review" %}<span class="badge-warning">{{ submission.get_status_display }}</span>
+    {% elif submission.status == "failed" %}<span class="badge-danger">{{ submission.get_status_display }}</span>
+    {% else %}<span class="badge-neutral">{{ submission.get_status_display }}</span>{% endif %}
+  </div>
+  <p class="mb-8 text-sm text-gray-500">
     Version {{ version.version_number }} · captured {{ submission.created_at|date:"Y-m-d H:i" }}
-    · total {{ submission.total_score|default_if_none:"—" }}
-    {% if submission.failure_reason %} · {{ submission.get_failure_reason_display }}{% endif %}
+    · total <span class="font-medium text-gray-700">{{ submission.total_score|default_if_none:"—" }}</span>
+    {% if submission.failure_reason %} · <span class="text-danger">{{ submission.get_failure_reason_display }}</span>{% endif %}
   </p>
 
-  <h2>Student</h2>
-  <form method="post" action="{% url 'submission_assign' submission.pk %}">
-    {% csrf_token %}
-    {% if assign_form.non_field_errors %}<ul class="errorlist">{% for e in assign_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-    <label>{{ assign_form.roster_entry.label }} {{ assign_form.roster_entry }}</label>
-    <label>or name {{ assign_form.student_label }}</label>
-    <button type="submit">Assign</button>
-  </form>
+  <div class="card mb-8 max-w-xl">
+    <h2 class="mt-0">Student</h2>
+    <form method="post" action="{% url 'submission_assign' submission.pk %}" class="flex flex-wrap items-end gap-4">
+      {% csrf_token %}
+      {% if assign_form.non_field_errors %}<ul class="errorlist w-full">{% for e in assign_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      <div>
+        <label class="field-label">{{ assign_form.roster_entry.label }}</label>
+        {{ assign_form.roster_entry }}
+      </div>
+      <div>
+        <label class="field-label">or name</label>
+        {{ assign_form.student_label }}
+      </div>
+      <button type="submit" class="btn-secondary">Assign</button>
+    </form>
+  </div>
 
   <h2>Answer sheet</h2>
-  <p class="muted">
+  <p class="mb-4 max-w-2xl text-sm text-gray-500">
     Question numbers are canonical (spreadsheet order) — every version prints
     them in a different shuffled order and position on the sheet (R2.1), so
     the letters below are shown with this version's actual option text
     rather than bare A/B/C/D.
   </p>
-  <table>
-    <thead>
-      <tr><th>Q</th><th>Read</th><th>Conf.</th><th>Correct key</th><th>✓/✗</th>
-          <th>Score</th><th>Override</th></tr>
-    </thead>
-    <tbody>
-      {% for row in rows %}
-      <tr>
-        <td>
-          Q{{ row.answer.question_no }}{% if row.question %}: {{ row.question.text }}{% endif %}
-          {% if row.answer.flagged %} <span class="badge">flag: {{ row.answer.flag_reason }}</span>{% endif %}
-        </td>
-        <td>
-          {% for letter, text in row.letter_options %}
-            {% if letter in row.answer.detected_options %}<strong>{{ letter }}: {{ text }}</strong><br>{% endif %}
-          {% empty %}—{% endfor %}
-          {% if not row.answer.detected_options %}—{% endif %}
-          {% if row.answer.manually_edited %}<span class="badge">edited</span>{% endif %}
-        </td>
-        <td class="muted">{{ row.answer.confidence|floatformat:2 }}</td>
-        <td>
-          {% for letter, text in row.letter_options %}
-            {% if letter in row.correct_letters %}{{ letter }}: {{ text }}<br>{% endif %}
-          {% endfor %}
-        </td>
-        <td>{% if row.answer.correct %}✓{% elif row.answer.correct is False %}✗{% else %}—{% endif %}</td>
-        <td>{{ row.answer.score|default_if_none:"—" }}</td>
-        <td>
-          <form method="post" action="{% url 'answer_override' row.answer.pk %}">
-            {% csrf_token %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Q</th><th>Read</th><th>Conf.</th><th>Correct key</th><th class="text-center">✓/✗</th>
+            <th>Score</th><th>Override</th></tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="max-w-xs">
+            <span class="font-medium text-gray-900">Q{{ row.answer.question_no }}{% if row.question %}: {{ row.question.text }}{% endif %}</span>
+            {% if row.answer.flagged %} <span class="badge-warning ml-1">flag: {{ row.answer.flag_reason }}</span>{% endif %}
+          </td>
+          <td>
             {% for letter, text in row.letter_options %}
-              <label><input type="checkbox" name="marked_options" value="{{ letter }}"
-                {% if letter in row.answer.detected_options %}checked{% endif %}> {{ letter }}: {{ text }}</label><br>
+              {% if letter in row.answer.detected_options %}<div class="font-medium text-gray-900">{{ letter }}: {{ text }}</div>{% endif %}
+            {% empty %}<span class="text-gray-400">—</span>{% endfor %}
+            {% if not row.answer.detected_options %}<span class="text-gray-400">—</span>{% endif %}
+            {% if row.answer.manually_edited %}<span class="badge-accent mt-1">edited</span>{% endif %}
+          </td>
+          <td class="text-gray-500">{{ row.answer.confidence|floatformat:2 }}</td>
+          <td>
+            {% for letter, text in row.letter_options %}
+              {% if letter in row.correct_letters %}<div>{{ letter }}: {{ text }}</div>{% endif %}
             {% endfor %}
-            <button type="submit">save</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <p class="muted">Override: tick the option(s) the student actually marked, then “save”.</p>
+          </td>
+          <td class="text-center">
+            {% if row.answer.correct %}<span class="text-success">✓</span>
+            {% elif row.answer.correct is False %}<span class="text-danger">✗</span>
+            {% else %}<span class="text-gray-400">—</span>{% endif %}
+          </td>
+          <td class="font-medium">{{ row.answer.score|default_if_none:"—" }}</td>
+          <td>
+            <form method="post" action="{% url 'answer_override' row.answer.pk %}" class="space-y-1">
+              {% csrf_token %}
+              {% for letter, text in row.letter_options %}
+                <label class="flex items-center gap-1.5 text-xs text-gray-600">
+                  <input type="checkbox" name="marked_options" value="{{ letter }}"
+                    {% if letter in row.answer.detected_options %}checked{% endif %}> {{ letter }}: {{ text }}
+                </label>
+              {% endfor %}
+              <button type="submit" class="btn-secondary btn-sm mt-1">save</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-2 text-xs text-gray-500">Override: tick the option(s) the student actually marked, then "save".</p>
 
   <h2>History</h2>
   {% if events %}
-  <table>
-    <thead><tr><th>When</th><th>Action</th><th>By</th><th>Detail</th></tr></thead>
-    <tbody>
-      {% for e in events %}
-      <tr>
-        <td class="muted">{{ e.created_at|date:"Y-m-d H:i" }}</td>
-        <td>{{ e.get_action_display }}</td>
-        <td>{% if e.is_system %}system{% else %}{{ e.actor_professor }}{% endif %}</td>
-        <td class="muted">{{ e.detail }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>When</th><th>Action</th><th>By</th><th>Detail</th></tr></thead>
+      <tbody>
+        {% for e in events %}
+        <tr>
+          <td class="text-gray-500">{{ e.created_at|date:"Y-m-d H:i" }}</td>
+          <td>{{ e.get_action_display }}</td>
+          <td>{% if e.is_system %}<span class="text-gray-400">system</span>{% else %}{{ e.actor_professor }}{% endif %}</td>
+          <td class="text-gray-500">{{ e.detail }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="muted">No recorded actions.</p>
+  <div class="empty-state">No recorded actions.</div>
   {% endif %}
 {% endblock %}

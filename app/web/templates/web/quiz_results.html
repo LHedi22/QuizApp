@@ -1,45 +1,61 @@
 {% extends "base.html" %}
 {% block title %}Results — {{ quiz.title }}{% endblock %}
 {% block content %}
-  <p class="muted"><a href="{% url 'quiz_detail' quiz.pk %}">&larr; {{ quiz.title }}</a></p>
-  <h1>Results — {{ quiz.title }}</h1>
-  <p><a href="{% url 'quiz_results_csv' quiz.pk %}">Download CSV</a></p>
+  <p class="mb-2 text-sm text-gray-500"><a href="{% url 'quiz_detail' quiz.pk %}">&larr; {{ quiz.title }}</a></p>
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="mb-0">Results — {{ quiz.title }}</h1>
+    <a href="{% url 'quiz_results_csv' quiz.pk %}" class="btn-secondary btn-sm">Download CSV</a>
+  </div>
 
-  <p>
-    Status:
-    <a href="?">all</a>
+  <div class="mb-5 flex flex-wrap gap-2">
+    <a href="?" class="badge-{% if not active_status %}primary{% else %}neutral{% endif %} hover:opacity-80">all</a>
     {% for value, label in statuses %}
-      · <a href="?status={{ value }}{% if active_sort %}&sort={{ active_sort }}{% endif %}"
-           {% if active_status == value %}class="badge"{% endif %}>{{ label }}</a>
+    <a href="?status={{ value }}{% if active_sort %}&sort={{ active_sort }}{% endif %}"
+       class="badge-{% if active_status == value %}primary{% else %}neutral{% endif %} hover:opacity-80">{{ label }}</a>
     {% endfor %}
-  </p>
+  </div>
 
   {% if rows %}
-  <table>
-    <thead>
-      <tr>
-        <th>Status</th>
-        <th><a href="?sort=score{% if active_status %}&status={{ active_status }}{% endif %}">Score ▲</a>
-            /<a href="?sort=-score{% if active_status %}&status={{ active_status }}{% endif %}">▼</a></th>
-        <th><a href="?sort=captured{% if active_status %}&status={{ active_status }}{% endif %}">Captured ▲</a>
-            /<a href="?sort=-captured{% if active_status %}&status={{ active_status }}{% endif %}">▼</a></th>
-        <th>Student</th>
-        <th>Flags</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in rows %}
-      <tr>
-        <td><a href="{% url 'submission_detail' row.sub.pk %}">{{ row.sub.get_status_display }}</a></td>
-        <td>{{ row.sub.total_score|default_if_none:"—" }}</td>
-        <td class="muted">{{ row.sub.created_at|date:"Y-m-d H:i" }}</td>
-        <td>{{ row.student }}</td>
-        <td>{% for f in row.flags %}<span class="badge">{{ f }}</span> {% empty %}<span class="muted">—</span>{% endfor %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>
+            <a href="?sort=score{% if active_status %}&status={{ active_status }}{% endif %}" class="text-gray-500 hover:text-primary">Score ▲</a>
+            /<a href="?sort=-score{% if active_status %}&status={{ active_status }}{% endif %}" class="text-gray-500 hover:text-primary">▼</a>
+          </th>
+          <th>
+            <a href="?sort=captured{% if active_status %}&status={{ active_status }}{% endif %}" class="text-gray-500 hover:text-primary">Captured ▲</a>
+            /<a href="?sort=-captured{% if active_status %}&status={{ active_status }}{% endif %}" class="text-gray-500 hover:text-primary">▼</a>
+          </th>
+          <th>Student</th>
+          <th>Flags</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>
+            <a href="{% url 'submission_detail' row.sub.pk %}"
+               class="{% if row.sub.status == 'finalized' %}badge-success{% elif row.sub.status == 'needs_review' %}badge-warning{% elif row.sub.status == 'failed' %}badge-danger{% else %}badge-neutral{% endif %}">
+              {{ row.sub.get_status_display }}
+            </a>
+          </td>
+          <td class="font-medium">{{ row.sub.total_score|default_if_none:"—" }}</td>
+          <td class="text-gray-500">{{ row.sub.created_at|date:"Y-m-d H:i" }}</td>
+          <td>{{ row.student }}</td>
+          <td>
+            <div class="flex flex-wrap gap-1">
+              {% for f in row.flags %}<span class="badge-warning">{{ f }}</span>{% empty %}<span class="text-gray-400">—</span>{% endfor %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="muted">No submissions{% if active_status %} with this status{% endif %}.</p>
+  <div class="empty-state">No submissions{% if active_status %} with this status{% endif %}.</div>
   {% endif %}
 {% endblock %}
