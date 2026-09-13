@@ -1,5 +1,7 @@
 # quizscanapp — Exam Version Generator & Scanner
 
+**Repo:** [github.com/LHedi22/QuizApp](https://github.com/LHedi22/QuizApp)
+
 A professor uploads MCQ questions once; the system produces N shuffled paper versions
 and print-ready OMR answer sheets, then reads photographed/scanned completed sheets,
 un-shuffles them to the canonical key, grades against a configurable marking scheme,
