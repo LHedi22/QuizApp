@@ -2553,3 +2553,91 @@ always verify there is exactly one listener on the target port before
 trusting a "why did my last edit not show up" result on Windows.
 
 **Commit:** `4c51467`
+
+## UI redesign — Tailwind CSS + SMU palette   (2026-09-13)
+
+**Done:** Full redesign of every page in `app/web/templates/` (base layout/nav,
+quiz list/create/edit/detail/roster/delete-confirm, `.xlsx` upload, scan/camera
+upload, results dashboard, submission review) on Tailwind CSS, replacing the
+hand-written `app/web/static/web/app.css`. No view/URL/form/OMR changes.
+
+- **Tokens:** `tailwind.config.js` maps the 9 SMU hexes to semantic roles —
+  `primary` (#0075C9, hover #007EA4), `accent`/teal (#00AFAA, `-dark` #00726F
+  for accessible-on-white text since raw teal fails AA), `success` (green
+  #006450 solid / #86C057 as a lighter accent), `warning` (amber #FFB700,
+  tint+dark-text only — never white text), `danger` (#EC0044, hover #C40039),
+  `purple`/`pink` as sparing badge accents, and a hand-picked cool-neutral
+  `gray` 50–950 scale (not stock Tailwind slate). Contrast checked with a
+  small WCAG script (relative-luminance formula) before locking pairings —
+  see the actual ratios below.
+- **Components:** `assets/tailwind/input.css` `@layer components` defines
+  `.btn-*`, `.badge-*`, `.card`, `.table`/`.table-wrap`, `.alert-*`,
+  `.field-*`, `.empty-state` — reused via the same classes across every
+  template rather than one-off markup per page. Submission/quiz status enums
+  map onto badge colors consistently (`draft`→neutral, `versioned`→primary,
+  `printed`→accent; `finalized`→success, `needs_review`→warning,
+  `failed`→danger).
+- **Test-pinned markup preserved:** `tests/test_web_*.py` pins exact
+  `<td>{{ n }}</td>` cells (ingest row-errors table) and a raw `<td>` count
+  (`quiz_detail` versions table), plus specific ids/`src=`/button text on the
+  scan-upload page. Rather than adding per-cell classes (which would have
+  broken those substring/count assertions), tables get all their styling from
+  a `.table`/`.table-wrap` class on the `<table>` wrapper via descendant
+  selectors in `@layer components` — `<td>`/`<th>` stay bare everywhere.
+- **`camera_capture.js` interaction (found while wiring the scan page):** it
+  overwrites `className` wholesale on `#camera-status`/`#camera-quality-msg`
+  (`el.className = "camera-status " + kind`) and toggles `.hidden` on
+  buttons/containers that carry Tailwind `flex`/`inline-flex` utility
+  classes. Author-stylesheet display utilities beat the UA `[hidden]{display:
+  none}` rule under the normal cascade, so those elements would render even
+  while "hidden". Fixed with one rule, not by touching the JS:
+  `[hidden]{display:none!important}` in `@layer base` (an `!important` in an
+  earlier layer still wins over a later layer's non-important rule). Matching
+  `.camera-status`/`.camera-quality-msg`/`.fail`/`.ok`/`.error` component
+  classes were added so the JS's wholesale `className` assignment still gets
+  real styling.
+- **Build pipeline:** standalone Tailwind CLI (`package.json` `devDependency`,
+  no PostCSS config needed). `deploy/Dockerfile` gained a `node:20-slim`
+  build stage that runs it and copies only the compiled `app/web/static/web/
+  app.css` into the Python runtime image — `docker compose ... up --build`
+  always ships current CSS regardless of host state. Local (non-docker) dev
+  documented in `deploy/RUNBOOK.md`: `npm install` once, `npm run watch:css`
+  while iterating. The compiled `app.css` is committed so a fresh clone
+  renders correctly before `npm install`.
+
+**DoD proof:**
+- `ruff check .` → `All checks passed!`
+- `pytest -q` (against the docker-compose Postgres on port 5434) →
+  `492 passed in 630.73s` — the same 492 as the last backend entry; no test
+  changed.
+- `npx tailwindcss -i ./assets/tailwind/input.css -o ./app/web/static/web/app.css --minify`
+  → `Done in 1332ms`, `app.css` regenerated.
+- Rendered every redesigned page via `manage.py runserver` (real Postgres,
+  seeded professor/quiz/roster/3 versions/3 submissions covering finalized /
+  needs_review+flag+override / failed-QR-unreadable) and screenshotted each
+  with headless Chromium (Playwright) at 1280px and, for the results and
+  scan-upload pages specifically (the ones most likely to break), 390×844
+  (iPhone-width) — table pages scroll horizontally inside `.table-wrap`
+  rather than breaking layout; the scan-upload page's two cards stack to
+  full-width buttons cleanly at phone width.
+- Contrast pairs actually computed (WCAG relative-luminance ratio):
+  primary-blue #0075C9 vs white text = **4.79:1** (passes AA); danger #EC0044
+  vs white text = **4.52:1** (passes, at the AA floor — kept the brand hex
+  as-is rather than deviating); success-dark #006450 vs white = **7.15:1**;
+  body text `gray-900` #1A1D21 vs white background = **16.9:1**. Confirmed
+  amber/pink/light-green fail white-text pairing (1.75:1 / 2.59:1 / 2.17:1)
+  and are only ever used as light tints with dark text (e.g. amber tint
+  #FFF3D6 + dark-amber text #7A4B00 = 6.72:1).
+
+**Notes / affects later phases:** none — purely presentational. No context
+variables were added to any view; every badge/status color decision is made
+in-template off fields the views already pass (`quiz.status`, `submission.
+status`, `row.flags`). `frontend-design` (or any project design/mockup)
+skill does not exist in this environment — checked the available skill list
+before starting; proceeded on established Tailwind/design-system practice
+instead (restrained type scale, semantic tokens, no default Bootstrap-y
+chrome).
+
+**Commits:** `a80fa0f` (base layout + tokens + build pipeline), `879b1d3`
+(quiz CRUD pages), `07efbcb` (scan/camera upload page), `0cd6f3d` (results
+dashboard + submission review)
