@@ -6,23 +6,30 @@
   <title>{% block title %}quizscanapp{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'web/app.css' %}">
 </head>
-<body>
+<body class="min-h-screen bg-gray-50 font-sans text-gray-800">
   {% if user.is_authenticated %}
-  <header class="nav">
-    <a href="{% url 'dashboard' %}"><strong>quizscanapp</strong></a>
-    <a href="{% url 'dashboard' %}">Quizzes</a>
-    <span class="spacer"></span>
-    <span class="muted">{{ user.email }}</span>
-    <form class="inline" method="post" action="{% url 'logout' %}">{% csrf_token %}
-      <button type="submit">Log out</button>
-    </form>
+  <header class="border-b border-gray-200 bg-white">
+    <div class="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3 sm:px-6">
+      <a href="{% url 'dashboard' %}" class="flex items-center gap-2 text-gray-900">
+        <span class="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-sm font-bold text-white">Q</span>
+        <span class="font-semibold tracking-tight">quizscanapp</span>
+      </a>
+      <nav class="flex items-center gap-5">
+        <a href="{% url 'dashboard' %}" class="nav-link">Quizzes</a>
+      </nav>
+      <span class="flex-1"></span>
+      <span class="hidden text-sm text-gray-500 sm:inline">{{ user.email }}</span>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+        <button type="submit" class="btn-secondary btn-sm">Log out</button>
+      </form>
+    </div>
   </header>
   {% endif %}
-  <main>
+  <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6">
     {% if messages %}
-    <ul class="messages">
+    <ul class="mb-6 space-y-2">
       {% for message in messages %}
-      <li class="{{ message.tags }}">{{ message }}</li>
+      <li class="alert-{{ message.tags }}">{{ message }}</li>
       {% endfor %}
     </ul>
     {% endif %}

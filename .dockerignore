@@ -14,3 +14,4 @@ media
 staticfiles
 deploy/.env
 .env
+node_modules

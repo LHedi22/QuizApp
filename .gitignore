@@ -12,3 +12,4 @@ deploy/backups/
 *.egg-info/
 build/
 dist/
+node_modules/

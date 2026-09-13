@@ -12,6 +12,40 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml <...>
 
 ---
 
+## Frontend (Tailwind CSS)
+
+`app/web/static/web/app.css` is generated from `assets/tailwind/input.css` +
+`tailwind.config.js` by the Tailwind CLI (`package.json`) — there is no other
+build step, no bundler, no runtime JS framework.
+
+**Docker (default path — nothing to install):** `deploy/Dockerfile` has a
+`node:20-slim` build stage that runs `npm install` + the Tailwind CLI and
+copies only the compiled `app.css` into the Python runtime image. `docker
+compose ... up --build` always ships current CSS regardless of what's
+installed on the host or committed to git — there is no scenario where the
+image serves stale styles.
+
+**Local (non-docker) dev**, e.g. running `manage.py runserver` directly:
+
+```
+npm install               # once
+npm run watch:css         # rebuilds app.css on every template/CSS edit, while you work
+# or a one-off build:
+npm run build:css
+```
+
+The compiled `app/web/static/web/app.css` is committed so a fresh clone
+renders correctly before anyone runs `npm install` — but if you edit any
+template's classes or `assets/tailwind/input.css`/`tailwind.config.js`
+outside Docker, rebuild it (`npm run build:css`) before committing, or your
+change won't render until the next Docker build regenerates it.
+
+`collectstatic` (run automatically on container boot, see below) picks up
+whatever `app.css` is on disk at build time — it does not run Tailwind
+itself.
+
+---
+
 ## First run
 
 ```
