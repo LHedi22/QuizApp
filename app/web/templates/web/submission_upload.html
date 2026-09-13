@@ -2,62 +2,68 @@
 {% load static %}
 {% block title %}Scan submissions — {{ version.quiz.title }} v{{ version.version_number }}{% endblock %}
 {% block content %}
-  <p class="muted"><a href="{% url 'quiz_detail' version.quiz_id %}">&larr; {{ version.quiz.title }}</a></p>
+  <p class="mb-2 text-sm text-gray-500"><a href="{% url 'quiz_detail' version.quiz_id %}">&larr; {{ version.quiz.title }}</a></p>
   <h1>Scan submissions — version {{ version.version_number }}</h1>
-  <p class="muted">
-    Every page is checked against <strong>this version's</strong> printed QR code.
+  <p class="mb-8 max-w-2xl text-sm text-gray-500">
+    Every page is checked against <strong class="font-medium text-gray-700">this version's</strong> printed QR code.
     A different version's sheet (or an unreadable scan) fails cleanly — it never
     gets silently scored against the wrong key.
   </p>
 
-  <h2>One photo</h2>
-  <div id="camera-banner" class="camera-banner" hidden></div>
-  <form method="post" enctype="multipart/form-data" action="{% url 'submission_upload' version.pk %}" id="photo-upload-form">
-    {% csrf_token %}
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div class="card">
+      <h2 class="mt-0">One photo</h2>
+      <div id="camera-banner" class="alert-error mb-4" hidden></div>
+      <form method="post" enctype="multipart/form-data" action="{% url 'submission_upload' version.pk %}" id="photo-upload-form">
+        {% csrf_token %}
 
-    <div id="camera-capture" class="camera-capture">
-      <button type="button" id="camera-start-btn">Use camera</button>
+        <div id="camera-capture" class="mb-4">
+          <button type="button" id="camera-start-btn" class="btn-secondary">Use camera</button>
 
-      <div id="camera-live" hidden>
-        <video id="camera-video" autoplay playsinline muted></video>
-        <div class="camera-controls">
-          <button type="button" id="camera-shot-btn">Capture</button>
-          <button type="button" id="camera-cancel-btn">Cancel</button>
+          <div id="camera-live" class="mt-3" hidden>
+            <video id="camera-video" autoplay playsinline muted class="w-full rounded-lg border border-gray-200"></video>
+            <div class="mt-3 flex gap-2">
+              <button type="button" id="camera-shot-btn" class="btn-primary">Capture</button>
+              <button type="button" id="camera-cancel-btn" class="btn-ghost">Cancel</button>
+            </div>
+          </div>
+
+          <div id="camera-review" class="mt-3" hidden>
+            <canvas id="camera-still-canvas" class="w-full rounded-lg border border-gray-200"></canvas>
+            <p id="camera-quality-msg" class="mt-2 text-sm"></p>
+            <div class="mt-3 flex gap-2">
+              <button type="button" id="camera-use-btn" class="btn-primary" hidden>Use this photo</button>
+              <button type="button" id="camera-retake-btn" class="btn-secondary">Retake</button>
+            </div>
+          </div>
+
+          <p id="camera-status" class="mt-2 text-sm text-gray-500" hidden></p>
         </div>
-      </div>
 
-      <div id="camera-review" hidden>
-        <canvas id="camera-still-canvas"></canvas>
-        <p id="camera-quality-msg" class="camera-quality-msg"></p>
-        <div class="camera-controls">
-          <button type="button" id="camera-use-btn" hidden>Use this photo</button>
-          <button type="button" id="camera-retake-btn">Retake</button>
+        <p class="mb-3 text-xs font-medium uppercase tracking-wide text-gray-400">— or —</p>
+
+        <div class="field">
+          {{ photo_form.image }}
+          {% if photo_form.image.errors %}<ul class="errorlist">{% for e in photo_form.image.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
         </div>
-      </div>
-
-      <p id="camera-status" class="camera-status" hidden></p>
+        <button type="submit" class="btn-primary w-full sm:w-auto">Upload &amp; scan</button>
+      </form>
+      <canvas id="camera-capture-canvas" hidden></canvas>
     </div>
 
-    <p class="muted">— or —</p>
-
-    <div class="field">
-      {{ photo_form.image }}
-      {% if photo_form.image.errors %}<ul class="errorlist">{% for e in photo_form.image.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="card">
+      <h2 class="mt-0">Batch PDF</h2>
+      <p class="mb-4 text-sm text-gray-500">One page per sheet. Each page is scored independently — a bad page never fails the rest of the batch.</p>
+      <form method="post" enctype="multipart/form-data" action="{% url 'submission_upload_batch' version.pk %}">
+        {% csrf_token %}
+        <div class="field">
+          {{ batch_form.file }}
+          {% if batch_form.file.errors %}<ul class="errorlist">{% for e in batch_form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <button type="submit" class="btn-primary w-full sm:w-auto">Upload &amp; scan batch</button>
+      </form>
     </div>
-    <button type="submit">Upload &amp; scan</button>
-  </form>
-  <canvas id="camera-capture-canvas" hidden></canvas>
-
-  <h2>Batch PDF</h2>
-  <p class="muted">One page per sheet. Each page is scored independently — a bad page never fails the rest of the batch.</p>
-  <form method="post" enctype="multipart/form-data" action="{% url 'submission_upload_batch' version.pk %}">
-    {% csrf_token %}
-    <div class="field">
-      {{ batch_form.file }}
-      {% if batch_form.file.errors %}<ul class="errorlist">{% for e in batch_form.file.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-    </div>
-    <button type="submit">Upload &amp; scan batch</button>
-  </form>
+  </div>
 
   <script src="{% static 'web/vendor/jsQR.js' %}"></script>
   <script src="{% static 'web/quality_check.js' %}"></script>
