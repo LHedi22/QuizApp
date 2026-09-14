@@ -170,13 +170,37 @@ npm run watch:css     # rebuilds app/web/static/web/app.css on every edit
 
 ## Run it
 
+Prerequisite: Docker Desktop running.
+
 ```bash
-cp deploy/.env.example deploy/.env      # then set a real SECRET_KEY
+cp deploy/.env.example deploy/.env
+# set a real SECRET_KEY, e.g.:
+python -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(64))"   # paste into deploy/.env
+
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build
 ```
 
-App on `http://localhost:${APP_PORT}` (default 8010). First run, backup/restore,
-wipe-and-reseed, and troubleshooting: **[`deploy/RUNBOOK.md`](deploy/RUNBOOK.md)**.
+This builds the frontend (Tailwind CSS) and Python image, then starts
+Postgres + the Django app + the Django-Q2 worker. The app container runs
+migrations and `collectstatic` on boot.
+
+App on `http://localhost:${APP_PORT}` (default 8010). Verify with:
+
+```bash
+curl -fsS http://localhost:${APP_PORT}/healthz      # -> {"status": "ok"}
+```
+
+Create a login (or self-sign-up at `/accounts/register/`):
+
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml exec app python manage.py createsuperuser
+```
+
+To stop: `docker compose --env-file deploy/.env -f deploy/docker-compose.yml down` (keeps data).
+
+First run, backup/restore, wipe-and-reseed, and troubleshooting (port
+conflicts on Windows, Docker Desktop issues, etc.):
+**[`deploy/RUNBOOK.md`](deploy/RUNBOOK.md)**.
 
 ## Testing
 
